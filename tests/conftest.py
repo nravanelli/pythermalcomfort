@@ -14,7 +14,11 @@ import requests
 # without needing to import them (pytest will automatically discover them).
 
 
-unit_test_data_prefix = "https://raw.githubusercontent.com/FedericoTartarini/validation-data-comfort-models/main/"
+# Pinned to a tagged release rather than `main` so that changes to the
+# validation-data-comfort-models repo can't silently break this repo's CI
+# before they've been reviewed and the pin deliberately bumped. See that
+# repo's CHANGELOG.md when bumping this tag.
+unit_test_data_prefix = "https://raw.githubusercontent.com/FedericoTartarini/validation-data-comfort-models/v1.0.0/"
 
 
 class Urls(Enum):
@@ -43,6 +47,7 @@ class Urls(Enum):
     USE_FANS_HEATWAVES = "ts_use_fans_heatwaves.json"
     UTCI = "ts_utci.json"
     WIND_CHILL = "ts_wind_chill.json"
+    WIND_CHILL_TEMPERATURE = "ts_wind_chill_temperature.json"
     PET_STEADY = "ts_pet_steady.json"
     DISCOMFORT_INDEX = "ts_discomfort_index.json"
 

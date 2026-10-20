@@ -1,19 +1,23 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import cast
+
 import numpy as np
 from numba import float64, vectorize
+from numpy.typing import NDArray
 
-from pythermalcomfort.classes_input import UTCIInputs
+from pythermalcomfort._internal.validation import _mapping, _valid_range
+from pythermalcomfort.classes_input import NumericInput, UTCIInputs
 from pythermalcomfort.classes_return import UTCI
-from pythermalcomfort.shared_functions import mapping, valid_range
 from pythermalcomfort.utilities import Units, units_converter
 
 
 def utci(
-    tdb: float | list[float],
-    tr: float | list[float],
-    v: float | list[float],
-    rh: float | list[float],
+    tdb: NumericInput,
+    tr: NumericInput,
+    v: NumericInput,
+    rh: NumericInput,
     units: str = Units.SI.value,
     limit_inputs: bool = True,
     round_output: bool = True,
@@ -46,7 +50,9 @@ def utci(
         By default, if the inputs are outside the standard applicability limits the
         function returns nan. If False, returns UTCI values even if input values are
         outside the applicability limits of the model. The valid input ranges are
-        -50 < tdb [°C] < 50, tdb - 70 < tr [°C] < tdb + 30, and for 0.5 < v [m/s] < 17.0. Defaults to True.
+        -50 <= tdb [°C] <= 50, -30 <= tr - tdb [°C] <= 70,
+        0.5 <= v [m/s] <= 17.0, 0 <= rh [%] <= 100, and water vapour pressure
+        between 0 and 5 kPa (inclusive). Defaults to True.
     round_output : bool, optional
         If True, rounds output value. If False, it does not round it. Defaults to True.
 
@@ -57,6 +63,20 @@ def utci(
         See :py:class:`~pythermalcomfort.classes_return.UTCI` for more details. To access the
         `utci` and `stress_category` values, use the corresponding attributes of the
         returned `Utci` instance, e.g., `result.utci`.
+
+    Notes
+    -----
+    All four applicability limits applied when ``limit_inputs=True`` (air temperature,
+    ``tr - tdb``, wind speed and humidity) are the input checks of the official UTCI
+    program, ``UTCI_a002.f90`` (version a 0.002, October 2009), available at
+    https://utci.org/resources/UTCI%20Program%20Code.zip. That program accepts wind
+    speeds up to 30 m/s, but its documentation and input prompt give 17 m/s, the limit
+    used here.
+    High relative humidity can exceed the vapour-pressure limit even when air
+    temperature is within range. Setting ``limit_inputs=False`` permits polynomial
+    extrapolation, which can produce unrealistic temperatures and stress categories.
+    The original approximation can also have a non-monotonic wind-speed response;
+    this function does not alter the polynomial to enforce monotonicity.
 
     Examples
     --------
@@ -69,7 +89,7 @@ def utci(
         print(result.stress_category)  # "no thermal stress"
 
         result = utci(tdb=[25, 40], tr=25, v=1.0, rh=50)
-        print(result.utci)  # [24.6, 40.6]
+        print(result.utci)  # [24.6, 40.4]
     """
     # Validate inputs using the UtciInputs class
     UTCIInputs(
@@ -100,7 +120,7 @@ def utci(
             (-1.8680009 * np.power(10.0, -13)),
         ]
         tk = t_db + 273.15  # air temp in K
-        es = 2.7150305 * np.log1p(tk)
+        es = 2.7150305 * np.log(tk)
         for count, i in enumerate(g):
             es = es + (i * np.power(tk, count - 2))
         es = np.exp(es) * 0.01  # convert Pa to hPa
@@ -114,11 +134,22 @@ def utci(
 
     # Checks that inputs are within the bounds accepted by the model if not return nan
     if limit_inputs:
-        tdb_valid = valid_range(tdb, (-50.0, 50.0))
-        diff_valid = valid_range(tr - tdb, (-30.0, 70.0))
-        v_valid = valid_range(v, (0.5, 17.0))
-        all_valid = ~(np.isnan(tdb_valid) | np.isnan(diff_valid) | np.isnan(v_valid))
+        tdb_valid = _valid_range(tdb, (-50.0, 50.0))
+        diff_valid = _valid_range(tr - tdb, (-30.0, 70.0), param_name="tr - tdb")
+        v_valid = _valid_range(v, (0.5, 17.0))
+        pa_valid = _valid_range(pa, (0.0, 5.0), param_name="pa (kPa)")
+        rh_valid = _valid_range(rh, (0.0, 100.0))
+        all_valid = ~(
+            np.isnan(tdb_valid)
+            | np.isnan(diff_valid)
+            | np.isnan(v_valid)
+            | np.isnan(pa_valid)
+            | np.isnan(rh_valid)
+        )
         utci_approx = np.where(all_valid, utci_approx, np.nan)
+
+    # Stress-category thresholds are in °C; keep the SI value before IP conversion.
+    utci_si = utci_approx
 
     if units.upper() == Units.IP.value:
         utci_approx = units_converter(
@@ -141,27 +172,45 @@ def utci(
 
     if round_output:
         utci_approx = np.round(utci_approx, 1)
+        utci_si = np.round(utci_si, 1)
 
     return UTCI(
         utci=utci_approx,
-        stress_category=mapping(utci_approx, stress_categories),
+        stress_category=_mapping(utci_si, stress_categories),
     )
 
 
-@vectorize(
-    [
-        float64(
-            float64,
-            float64,
-            float64,
-            float64,
-        ),
+@cast(
+    Callable[
+        [Callable[[float, float, float, float], float]],
+        Callable[
+            [
+                float | NDArray[np.float64],
+                float | NDArray[np.float64],
+                float | NDArray[np.float64],
+                float | NDArray[np.float64],
+            ],
+            np.float64 | NDArray[np.float64],
+        ],
     ],
-    cache=True,
+    vectorize(
+        [
+            float64(
+                float64,
+                float64,
+                float64,
+                float64,
+            ),
+        ],
+        cache=True,
+    ),
 )
 def _utci_optimized(
-    tdb: float64, v: float64, delta_t_tr: float64, pa: float64
-) -> float64:
+    tdb: float,
+    v: float,
+    delta_t_tr: float,
+    pa: float,
+) -> float:
     return (
         tdb
         + 0.607562052

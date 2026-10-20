@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-from pythermalcomfort.utilities import (
+from pythermalcomfort.psychrometrics import (
     dew_point_tmp,
     enthalpy_air,
-    mean_radiant_tmp,
-    operative_tmp,
     p_sat,
     psy_ta_rh,
     wet_bulb_tmp,
@@ -50,7 +48,15 @@ def test_t_dp() -> None:
 
     # More temperature ranges
     assert dew_point_tmp(10.0, 50.0) == pytest.approx(0.064, abs=1e-1)  # Low temp
-    assert dew_point_tmp(40.0, 50.0) == pytest.approx(27.587, abs=1e-1)  # High temp
+    assert dew_point_tmp(40.0, 50.0) == pytest.approx(27.587, abs=1e-1)
+
+
+def test_t_dp_invalid_rh() -> None:
+    """Test that dew_point_tmp raises ValueError for invalid relative humidity."""
+    with pytest.raises(ValueError):
+        dew_point_tmp(25, 110)
+    with pytest.raises(ValueError):
+        dew_point_tmp(25, -10)
 
 
 def test_t_wb() -> None:
@@ -76,42 +82,7 @@ def test_psy_ta_rh() -> None:
     assert results.h == pytest.approx(50259.79, abs=1e-1)
 
 
-def test_t_o() -> None:
-    """Test the operative temperature function with various inputs."""
-    assert operative_tmp(25, 25, 0.1) == 25
-    assert round(operative_tmp(25, 30, 0.3), 2) == 26.83
-    assert round(operative_tmp(20, 30, 0.3), 2) == 23.66
-    assert operative_tmp(25, 25, 0.1, standard="ASHRAE") == 25
-    assert operative_tmp(20, 30, 0.1, standard="ASHRAE") == 25
-    assert operative_tmp(20, 30, 0.3, standard="ASHRAE") == 24
-    assert operative_tmp(20, 30, 0.7, standard="ASHRAE") == 23
-
-
 def test_p_sat() -> None:
     """Test the saturation pressure function with various inputs."""
     assert pytest.approx(p_sat(tdb=25), abs=1e-1) == 3169.2
     assert pytest.approx(p_sat(tdb=50), abs=1e-1) == 12349.9
-
-
-def test_t_mrt() -> None:
-    """Test the mean radiant temperature function with various inputs."""
-    np.testing.assert_equal(
-        mean_radiant_tmp(
-            tg=[53.2, 55, 55],
-            tdb=30,
-            v=[0.3, 0.3, 0.1],
-            d=0.1,
-            standard="ISO",
-        ),
-        [74.8, 77.8, 71.9],
-    )
-    np.testing.assert_equal(
-        mean_radiant_tmp(
-            tg=[25.42, 26.42, 26.42, 26.42],
-            tdb=26.10,
-            v=0.1931,
-            d=[0.1, 0.1, 0.5, 0.03],
-            standard="Mixed Convection",
-        ),
-        [24.2, 27.0, np.nan, np.nan],
-    )

@@ -177,12 +177,29 @@ Heat Index (HI) Rothfusz (1990)
     :noindex:
     :members:
 
+Heat Index (HI) Schoen (2005)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pythermalcomfort.models.heat_index_schoen.heat_index_schoen
+
+.. autoclass:: pythermalcomfort.classes_return.HI
+    :noindex:
+    :members:
+
 Humidex
 -------
 
 .. autofunction:: pythermalcomfort.models.humidex.humidex
 
 .. autoclass:: pythermalcomfort.classes_return.Humidex
+    :members:
+
+Required Clothing Insulation (IREQ) and Duration Limited Exposure (DLE)
+-----------------------------------------------------------------------
+
+.. autofunction:: pythermalcomfort.models.ireq.ireq
+
+.. autoclass:: pythermalcomfort.classes_return.IREQ
     :members:
 
 Joint system thermoregulation model (JOS-3)
@@ -224,7 +241,7 @@ Predicted Mean Vote (PMV) and Predicted Percentage of Dissatisfied (PPD)
 The Predicted Mean Vote (PMV) is an index that aims to predict the mean value of thermal sensation votes from a large group of people, based on a seven-point scale ranging from "cold" (-3) to "hot" (+3).
 It was developed by Fanger [Fanger1970]_.
 
-The PMV is designed to predict the average thermal sensation of a large group of people exposed to the same environment [7730ISO2005]_.
+The PMV is designed to predict the average thermal sensation of a large group of people exposed to the same environment [7730ISO2005]_ [7730ISO2025]_.
 It calculates the heat balance of a typical occupant and relates their thermal gains or losses to their predicted mean thermal sensation [55ASHRAE2023]_.
 
 The PMV can be used to check if a thermal environment meets comfort criteria and to establish requirements for different levels of acceptability.
@@ -240,8 +257,8 @@ The PMV calculation considers several factors:
   *   **Clothing insulation** (`I` :sub:`cl,r`), dynamic intrinsic insulation, this is the thermal insulation from the skin surface to the outer clothing surface, including enclosed air layers, under the environmental conditions.
 
 The PMV model is applicable when the six main parameters are within specific intervals.
-These values are specified by the ASHRAE 55 [55ASHRAE2023]_ and ISO 7730 standards [7730ISO2005]_.
-The ISO also states that the PMV model is only applicable for PMV between -2 and +2 [7730ISO2005]_.
+These values are specified by the ASHRAE 55 [55ASHRAE2023]_ and ISO 7730 standards [7730ISO2005]_ [7730ISO2025]_.
+The ISO also states that the PMV model is only applicable for PMV between -2 and +2 [7730ISO2005]_ [7730ISO2025]_.
 
 There are several formulations of the PMV model that have been developed over the years.
 The two most commonly used are the original PMV model [Fanger1970]_ and the ASHRAE 55 PMV model [55ASHRAE2023]_.
@@ -279,8 +296,7 @@ ASHRAE 55 - PMV and PPD
 
 .. autofunction:: pythermalcomfort.models.pmv_ppd_ashrae.pmv_ppd_ashrae
 
-.. autoclass:: pythermalcomfort.classes_return.PMVPPD
-    :noindex:
+.. autoclass:: pythermalcomfort.classes_return.PMVPPDAshrae
     :members:
 
 Adaptive Predicted Mean Vote (aPMV)
@@ -321,6 +337,17 @@ Solar gain on people
 .. autofunction:: pythermalcomfort.models.solar_gain.solar_gain
 
 .. autoclass:: pythermalcomfort.classes_return.SolarGain
+    :members:
+
+Sports Heat Stress Risk
+------------------------
+
+.. autofunction:: pythermalcomfort.models.sports_heat_stress_risk.sports_heat_stress_risk
+
+.. autoclass:: pythermalcomfort.models.sports_heat_stress_risk.Sports
+    :members:
+
+.. autoclass:: pythermalcomfort.classes_return.SportsHeatStressRisk
     :members:
 
 Standard Effective Temperature (SET)

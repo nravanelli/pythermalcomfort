@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from pythermalcomfort.classes_input import DIInputs
+from pythermalcomfort._internal.validation import _mapping
+from pythermalcomfort.classes_input import DIInputs, NumericInput
 from pythermalcomfort.classes_return import DI
-from pythermalcomfort.shared_functions import mapping
 
 
 def discomfort_index(
-    tdb: float | list[float],
-    rh: float | list[float],
+    tdb: NumericInput,
+    rh: NumericInput,
 ) -> DI:
     """Calculate the Discomfort Index (DI).
 
@@ -76,5 +76,5 @@ def discomfort_index(
 
     return DI(
         di=np.around(di, 1),
-        discomfort_condition=mapping(di, di_categories, right=False),
+        discomfort_condition=_mapping(di, di_categories, right=False),
     )

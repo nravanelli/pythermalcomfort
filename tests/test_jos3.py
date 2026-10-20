@@ -46,7 +46,93 @@ from pythermalcomfort.jos3_functions.thermoregulation import (
     sum_bf,
     wet_r,
 )
-from pythermalcomfort.models import JOS3
+from pythermalcomfort.models import JOS3, pmv_ppd_iso
+
+
+@pytest.mark.parametrize(
+    ("met", "expected_to"),
+    [
+        (0.9, 29.599326),
+        (0.85, 29.992688),
+        (0.846, 30.024176),
+        (0.8, 30.385882),
+        (0.79, 30.464226),
+        (0.6, 31.956085),
+    ],
+)
+def test_neutral_temperature_for_low_metabolic_rates(met, expected_to) -> None:
+    """ISO comfort limits must not truncate JOS3's internal neutral search (#435)."""
+    # Reference: TanabeLab/JOS-3 comfmod.preferred_temp, commit 3c74ee2.
+    model = JOS3()
+    to = model._calculate_operative_temp_when_pmv_is_zero(
+        v=0.1,
+        rh=50,
+        met=met,
+        clo=0,
+    )
+    assert to == pytest.approx(expected_to, abs=0.05)
+    residual = pmv_ppd_iso(
+        to,
+        to,
+        0.1,
+        50,
+        met,
+        0,
+        limit_inputs=False,
+        round_output=False,
+    ).pmv
+    assert abs(residual) <= 0.01
+
+
+@pytest.mark.parametrize("weight", [69.5, 70, 80])
+def test_low_metabolic_rate_set_points_are_finite(weight) -> None:
+    """Accepted body parameters must not initialize core/skin set points as NaN."""
+    model = JOS3(
+        height=1.6,
+        weight=weight,
+        age=80,
+        sex="female",
+        bmr_equation="japanese",
+    )
+    assert np.isfinite(model.cr_set_point).all()
+    assert np.isfinite(model.sk_set_point).all()
+
+
+def test_set_points_are_continuous_across_pmv_temperature_limit() -> None:
+    """A 0.5 kg weight change must not cause a ~2°C core set-point jump (#435)."""
+    params = dict(height=1.6, age=80, sex="female", bmr_equation="japanese")
+    lighter = JOS3(weight=69.5, **params)
+    heavier = JOS3(weight=70, **params)
+    assert abs(heavier.cr_set_point[2] - lighter.cr_set_point[2]) < 0.1
+
+
+def test_low_metabolic_rate_simulation_stays_finite() -> None:
+    """Invalid initialization must not poison a two-hour virtual exposure."""
+    model = JOS3(
+        height=1.6,
+        weight=80,
+        age=80,
+        sex="female",
+        bmr_equation="japanese",
+    )
+    model.to = 28
+    model.rh = 50
+    model.v = 0.1
+    model.clo = 0.5
+    model.par = 1.25
+    model.simulate(times=120, dtime=60)
+    results = model.dict_results()
+    for key in ["t_skin_mean", "t_core_chest", "t_skin_chest"]:
+        assert np.isfinite(results[key]).all()
+        assert len(results[key]) == 121
+
+
+def test_public_pmv_still_rejects_out_of_domain_neutral_conditions() -> None:
+    """Internal opt-out must not disable the public PMV applicability guard."""
+    with pytest.warns(UserWarning):
+        result = pmv_ppd_iso(30.5, 30.5, 0.1, 50, 0.79, 0)
+    assert np.isnan(result.pmv)
+    assert np.isnan(result.ppd)
 
 
 def test_jos3_class() -> None:
@@ -1819,3 +1905,57 @@ def test_resp_heat_loss() -> None:
 
     res_sh, _ = resp_heat_loss(tdb, p_a, q_thermogenesis_total)
     assert res_sh == 0.0
+
+
+def test_dict_results_returns_values_not_body_part_names() -> None:
+    """Per-segment columns must hold simulated values, not the segment name.
+
+    Regression test for issue #264: dict_results() zipped its column keys
+    against a JOS3BodyParts' __dict__, and iterating a dict yields its keys, so
+    every per-segment column held its own body part name as a string.
+    """
+    model = JOS3(height=1.7, weight=60, age=30)
+    model.to = 28
+    model.rh = 40
+    model.v = 0.1
+    model.par = 1.0
+    model.simulate(3)
+
+    results = model.dict_results()
+
+    # The reported bug: the column held the string "head".
+    assert not isinstance(results["t_skin_head"][-1], str)
+    assert isinstance(results["t_skin_head"][-1], (int, float, np.floating))
+
+    # "sex" is the only column that is legitimately a string.
+    string_columns = [
+        key
+        for key, series in results.items()
+        if any(isinstance(entry, str) for entry in series)
+    ]
+    assert string_columns == ["sex"], (
+        f"unexpected string-valued columns: {string_columns}"
+    )
+
+
+def test_dict_results_subset_variables_align_with_results() -> None:
+    """Variables defined on a subset of segments must pick the right segments.
+
+    t_muscle and t_fat exist only for head and pelvis, but are carried in a
+    full 17-segment container. Selecting the first len(keys) values rather than
+    the VINDEX-indicated ones paired t_muscle_pelvis with the neck's value.
+    """
+    model = JOS3(height=1.7, weight=60, age=30)
+    model.to = 28
+    model.rh = 40
+    model.v = 0.1
+    model.par = 1.0
+    model.simulate(3)
+
+    flat = model.dict_results()
+    structured = model.results()
+
+    assert flat["t_muscle_head"][-1] == structured.t_muscle.head[-1]
+    assert flat["t_muscle_pelvis"][-1] == structured.t_muscle.pelvis[-1]
+    assert flat["t_fat_head"][-1] == structured.t_fat.head[-1]
+    assert flat["t_fat_pelvis"][-1] == structured.t_fat.pelvis[-1]

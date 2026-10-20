@@ -2,25 +2,28 @@ from __future__ import annotations
 
 import numpy as np
 
-from pythermalcomfort.classes_input import VerticalTGradPPDInputs
+from pythermalcomfort._internal.ashrae55 import _check_ashrae55_compliance
+from pythermalcomfort.classes_input import NumericInput, VerticalTGradPPDInputs
 from pythermalcomfort.classes_return import VerticalTGradPPD
 from pythermalcomfort.models import pmv_ppd_ashrae
-from pythermalcomfort.utilities import Models, _check_standard_compliance_array
+from pythermalcomfort.utilities import Models
 
 
 def vertical_tmp_grad_ppd(
-    tdb: float | list[float],
-    tr: float | list[float],
-    vr: float | list[float],
-    rh: float | list[float],
-    met: float | list[float],
-    clo: float | list[float],
-    vertical_tmp_grad: float | list[float],
+    tdb: NumericInput,
+    tr: NumericInput,
+    vr: NumericInput,
+    rh: NumericInput,
+    met: NumericInput,
+    clo: NumericInput,
+    vertical_tmp_grad: NumericInput,
     round_output: bool = True,
+    limit_inputs: bool = True,
 ) -> VerticalTGradPPD:
     """Calculate the percentage of thermally dissatisfied people with a vertical
     temperature gradient between feet and head [55ASHRAE2023]_. This equation is only
-    applicable for vr < 0.2 m/s (40 fps).
+    applicable for vr < 0.2 m/s (40 fpm). The model subtracts a baseline of 34.5 % of
+    dissatisfied occupants; when the result would be negative, ppd_vg is 0.
 
     Parameters
     ----------
@@ -43,7 +46,7 @@ def vertical_tmp_grad_ppd(
             average air speed measured by the sensor plus the activity-generated air speed
             (Vag). Where Vag is the activity-generated air speed caused by motion of
             individual body parts. vr can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.v_relative`.
+            :py:meth:`pythermalcomfort.environment.v_relative`.
 
     rh : float or list of floats
         Relative humidity, [%].
@@ -58,12 +61,18 @@ def vertical_tmp_grad_ppd(
             surface to the outer clothing surface, including enclosed air layers, under actual
             environmental conditions. This value is not the total insulation (`I`:sub:`T,r`).
             The dynamic clothing insulation, clo, can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.clo_dynamic_ashrae`.
+            :py:meth:`pythermalcomfort.clothing.clo_dynamic_ashrae`.
 
     vertical_tmp_grad : float or list of floats
         Vertical temperature gradient between the feet and the head, [°C/m].
     round_output : bool, optional
         If True, rounds output value. If False, it does not round it. Defaults to True.
+    limit_inputs : bool, optional
+        By default, if the inputs are outside the standard applicability limits the
+        function returns nan. If False, returns values even if input values are
+        outside the applicability limits of the model. Defaults to True. The
+        applicability limits are 10 < tdb [°C] < 40, 10 < tr [°C] < 40,
+        0 < vr [m/s] < 0.2, 1 < met [met] < 4, and 0 < clo [clo] < 1.5.
 
     Returns
     -------
@@ -93,6 +102,7 @@ def vertical_tmp_grad_ppd(
         met=met,
         clo=clo,
         vertical_tmp_grad=vertical_tmp_grad,
+        limit_inputs=limit_inputs,
     )
 
     tdb = np.asarray(tdb)
@@ -102,21 +112,6 @@ def vertical_tmp_grad_ppd(
     clo = np.asarray(clo)
     vertical_tmp_grad = np.asarray(vertical_tmp_grad)
 
-    (
-        tdb_valid,
-        tr_valid,
-        v_valid,
-        met_valid,
-        clo_valid,
-    ) = _check_standard_compliance_array(
-        standard=Models.ashrae_55_2023.value,
-        tdb=tdb,
-        tr=tr,
-        v_limited=vr,
-        met=met,
-        clo=clo,
-    )
-
     tsv = pmv_ppd_ashrae(
         tdb=tdb,
         tr=tr,
@@ -125,23 +120,40 @@ def vertical_tmp_grad_ppd(
         met=met,
         clo=clo,
         model=Models.ashrae_55_2023.value,
+        limit_inputs=False,
     ).pmv
     numerator = np.exp(0.13 * (tsv - 1.91) ** 2 + 0.15 * vertical_tmp_grad - 1.6)
-    ppd_val = (numerator / (1 + numerator) - 0.345) * 100
+    # 34.5 % baseline subtracted, negative values set to zero (Liu et al. 2020, eq. 3)
+    ppd_val = np.maximum((numerator / (1 + numerator) - 0.345) * 100, 0.0)
     acceptability = ppd_val <= 5
 
     if round_output:
         ppd_val = np.round(ppd_val, 1)
 
-    all_valid = ~(
-        np.isnan(tdb_valid)
-        | np.isnan(tr_valid)
-        | np.isnan(v_valid)
-        | np.isnan(met_valid)
-        | np.isnan(clo_valid)
-    )
+    if limit_inputs:
+        (
+            tdb_valid,
+            tr_valid,
+            met_valid,
+            clo_valid,
+            v_limited_valid,
+        ) = _check_ashrae55_compliance(
+            tdb=tdb,
+            tr=tr,
+            v_limited=vr,
+            met=met,
+            clo=clo,
+        )
 
-    ppd_val = np.where(all_valid, ppd_val, np.nan)
-    acceptability = np.where(all_valid, acceptability, np.nan)
+        all_valid = ~(
+            np.isnan(tdb_valid)
+            | np.isnan(tr_valid)
+            | np.isnan(met_valid)
+            | np.isnan(clo_valid)
+            | np.isnan(v_limited_valid)
+        )
+
+        ppd_val = np.where(all_valid, ppd_val, np.nan)
+        acceptability = np.where(all_valid, acceptability, np.nan)
 
     return VerticalTGradPPD(ppd_vg=ppd_val, acceptability=acceptability)

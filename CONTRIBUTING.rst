@@ -11,7 +11,7 @@ Bug, Feature, Discussions, and Documentation Issues
 Bug Reports
 -----------
 
-When `reporting a bug <https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort/issues>`_, please complete
+When `reporting a bug <https://github.com/pythermalcomfort/pythermalcomfort/issues>`_, please complete
 the issue template with as much relevant information as possible, including:
 
 * Your operating system name and version.
@@ -31,14 +31,43 @@ located in the `docs/` folder.
 Features, Feedback, and Discussions
 -----------------------------------
 
-The best way to suggest a new feature is to open an `issue <https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort/issues>`_.
-Alternatively, you can start a discussion in the `Discussions section <https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort/discussions>`_.
+The best way to suggest a new feature is to open an `issue <https://github.com/pythermalcomfort/pythermalcomfort/issues>`_.
+Alternatively, you can start a discussion in the `Discussions section <https://github.com/pythermalcomfort/pythermalcomfort/discussions>`_.
 
 If you are proposing a feature, please use the `Feature request` template and:
 
 * Explain in detail how it would work and why it's useful.
 * Keep the scope narrow so it is easier to review and implement.
 * Consider opening a discussion first for larger changes.
+
+Issue types, labels and triage (maintainers)
+--------------------------------------------
+
+Every issue gets one **issue type** and, once triaged, one **area** and one
+**priority** label. Status labels are added only when they apply.
+
+* **Type** (GitHub issue type, not a label): ``Bug`` for wrong results or crashes,
+  ``Feature`` for new functionality, models or speed-ups, ``Task`` for refactoring,
+  documentation, CI, dependencies and tests. The issue templates set the type for bug
+  reports and feature requests.
+* **Area**: ``area: models``, ``area: plots``, ``area: jos3`` or ``area: infra`` (CI,
+  dependencies, release, tests, tooling).
+* **Priority**: ``priority: high`` (wrong results or security, fix first),
+  ``priority: medium`` (should be done soon) or ``priority: low`` (nice to have).
+  High and medium issues go into the "Next release" milestone.
+* **Topic** (optional): ``new model``, ``documentation``, ``performance``.
+* **Status** (only when it applies): ``needs decision`` (waiting on a maintainer
+  design decision; tag the maintainer in a comment that states the question),
+  ``blocked`` (waiting on another issue, repository or external event) and
+  ``help wanted`` (open to new contributors).
+
+``dependencies`` and ``python`` are applied by Dependabot to its pull requests.
+
+Keep issues small enough to finish in one pull request. When a large issue is partly
+done, close it with a comment that lists what shipped, and open one scoped issue per
+remaining item, each linking back to the original. Close duplicates and questions that
+need no change with GitHub's "duplicate" or "not planned" close reasons rather than
+labels.
 
 Contributing - Code
 ===================
@@ -56,8 +85,9 @@ Setting up your development environment:
 
     git clone git@github.com:your-username/pythermalcomfort.git
     cd pythermalcomfort
-    git remote add upstream git@github.com:CenterForTheBuiltEnvironment/pythermalcomfort.git
+    git remote add upstream git@github.com:pythermalcomfort/pythermalcomfort.git
     git fetch upstream
+    git checkout development
 
 2. Set up a virtual environment and install dependencies, you should have Python 3.12+ installed and `pipenv <https://pipenv.pypa.io/en/latest/>`_ available:
 
@@ -66,7 +96,7 @@ Setting up your development environment:
     pip install pipenv
     pipenv sync --dev
 
-3. Create a feature branch (use the naming rules below):
+3. Create a feature branch based on the development branch, with a descriptive name for example:
 
 .. code-block:: bash
 
@@ -121,6 +151,11 @@ When opening a pull request, include:
 * Relevant documentation updates (docstrings or docs/).
 * A CHANGELOG entry (if applicable).
 * Add yourself to AUTHORS.rst (optional).
+* If your change touches ``tests/conftest.py``'s ``unit_test_data_prefix``
+  or any test relying on `validation-data-comfort-models
+  <https://github.com/FedericoTartarini/validation-data-comfort-models>`_,
+  check that repo's latest tag and bump the pin if a newer one exists —
+  see "Keeping the validation-data-comfort-models pin current" below.
 
 Contributing a New Function
 ===========================
@@ -145,6 +180,7 @@ Quick checklist (use before opening a PR)
 - [ ] All tests pass and formatting/linting applied.
 - [ ] Add the function to ``__init__.py`` which is located in the ``pythermalcomfort/models/`` folder.
 - [ ] The function should accept both scalar and vectorized inputs (lists, numpy arrays) and return outputs of matching shape.
+- [ ] Optional but important: optimise for performance using Numba and NumPy vectorized operations.
 
 Step-by-step guide
 ------------------
@@ -166,6 +202,14 @@ When implementing the function, follow these guidelines:
 - Use numpy vectorized operations for performance (e.g., ``np.log``) rather than ``math``.
 - Add a NumPy-style docstring including: Parameters, Raises, Returns, Examples, References.
 - Check in the BaseInputs how inputs are typically named, typed, and validated.
+- Call functions with keyword arguments, both in your own code and in docstring
+  examples: ``pmv_ppd_iso(tdb=25, tr=25, vr=0.1, rh=50, met=1.2, clo=0.5)``, not
+  ``pmv_ppd_iso(25, 25, 0.1, 50, 1.2, 0.5)``. Swapping two same-typed arguments
+  (e.g. ``tdb`` and ``tr``) still runs and returns a plausible number, so nothing
+  else catches it. ``tests/test_call_site_arguments.py`` fails if code in the package
+  passes 3 or more positional arguments to a package function. The one exception is
+  numba ``@vectorize`` functions, which do not accept keyword arguments (#441).
+  ``np.vectorize`` wrappers do accept them, so call those by keyword too.
 - Example skeleton for a new function:
 
 .. code-block:: python
@@ -204,7 +248,7 @@ When implementing the function, follow these guidelines:
             from pythermalcomfort.models import my_func
 
             tdb = 25
-            result = my_func(tdb)
+            result = my_func(x=tdb)
             print(result)  # Expected output: ...
         """
 
@@ -277,6 +321,51 @@ As a convention, functions should return structured dataclasses where applicable
 - Add a short line to the changelog describing the new function.
 - Optionally add yourself to AUTHORS.rst when contributing a new feature.
 
+Release process (maintainers only)
+===================================
+
+After each release, the version-bump commit on ``master`` must be merged back
+into ``development`` so the two branches stay in sync:
+
+.. code-block:: bash
+
+    git checkout development && git pull
+    git merge origin/master --no-edit
+    git push origin development
+
+Failing to do this means ``development`` will be behind ``master`` and the next
+RC tag will be rejected by the CI ``merge-base`` check.
+
+See ``CLAUDE.md`` for the full step-by-step release process.
+
+Keeping the validation-data-comfort-models pin current
+--------------------------------------------------------
+
+Test fixtures are fetched from `validation-data-comfort-models
+<https://github.com/FedericoTartarini/validation-data-comfort-models>`_ at a
+tagged release, pinned via ``unit_test_data_prefix`` in ``tests/conftest.py``
+(e.g. ``.../validation-data-comfort-models/v1.0.0/``). It is **not** pinned to
+``main``, on purpose: a fixture change there would otherwise silently change
+what our CI validates against, on every branch and PR, before anyone here
+reviewed it.
+
+This means the pin can drift behind that repo's actual latest tag. Before
+cutting a pythermalcomfort release, and whenever a PR here depends on new or
+changed reference data:
+
+1. Check the `latest tag <https://github.com/FedericoTartarini/validation-data-comfort-models/tags>`_
+   and its `CHANGELOG.md <https://github.com/FedericoTartarini/validation-data-comfort-models/blob/main/CHANGELOG.md>`_.
+2. If it's newer than the tag in ``tests/conftest.py``, bump the pin in the
+   same PR and note in the PR description which changelog entries motivated
+   the bump.
+3. Re-run the affected tests (e.g. ``pytest tests/test_phs.py``) against the
+   new tag before merging — a MAJOR bump there (see that repo's README for
+   its semver rules) can mean renamed/removed keys that break our assertions.
+
+Running against a tag that's several releases behind is treated as a bug to
+flag/fix, not a "leave it be" — open an issue if you notice this and can't fix
+it in the same PR.
+
 8) Formatting, linting and tests locally
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -328,6 +417,6 @@ Where to get help
   `Full documentation <https://pythermalcomfort.readthedocs.io/en/latest>`_
 
 License
-=======
+-------
 
 pythermalcomfort is released under the MIT License.

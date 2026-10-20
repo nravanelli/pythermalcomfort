@@ -3,14 +3,42 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from dataclasses import fields as dataclass_fields
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pythermalcomfort.models.sports_heat_stress_risk import _SportsValues
 
 import numpy as np
 
-from pythermalcomfort.utilities import Postures, Sex, Units, validate_type
+from pythermalcomfort._internal.validation import validate_type
+from pythermalcomfort.utilities import NumericInput, Postures, Sex, Units
+
+_NUMERIC_TYPES = NumericInput.__args__
 
 
-class WorkIntensity(str, Enum):
+def numeric_field(default=None):
+    return field(default=default, metadata={"types": _NUMERIC_TYPES})
+
+
+def choice_field(allowed: list[str], default: Any = None) -> Any:
+    """Create a dataclass field whose value ``BaseInputs`` checks against ``allowed``.
+
+    Parameters
+    ----------
+    allowed : list[str]
+        Accepted values, compared case-insensitively by ``BaseInputs.__post_init__``.
+    default : Any, optional
+        Default value of the field, by default None.
+
+    Returns
+    -------
+    dataclasses.Field
+        A field with the given default and ``allowed`` metadata.
+    """
+    return field(default=default, metadata={"allowed": allowed})
+
+
+class WorkIntensity(str, Enum):  # noqa: UP042 - StrEnum would change str(member)
     """Enumeration for work intensity levels."""
 
     HEAVY = "heavy"
@@ -39,165 +67,63 @@ class BaseInputs:
     """Base inputs with metadata-driven validation."""
 
     a_coefficient: float | int = field(default=None, metadata={"types": (float, int)})
-    age: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
+    age: NumericInput = numeric_field()
     airspeed_control: bool = field(default=True, metadata={"is_bool": True})
-    asw: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    body_surface_area: float | int | np.ndarray | list = field(
-        default=1.8258, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    clo: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    d: float | int | np.ndarray | list = field(
-        default=0, metadata={"types": (float, int, np.ndarray, list)}
-    )
+    asw: NumericInput = numeric_field()
+    body_surface_area: NumericInput = numeric_field(1.8258)
+    clo: NumericInput = numeric_field()
+    d: NumericInput = numeric_field(0)
     duration: int = field(default=None, metadata={"types": (int, np.ndarray)})
     e_coefficient: float | int = field(default=None, metadata={"types": (float, int)})
-    f_bes: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    f_svv: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    floor_reflectance: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    height: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
+    f_bes: NumericInput = numeric_field()
+    f_svv: NumericInput = numeric_field()
+    floor_reflectance: NumericInput = numeric_field()
+    height: NumericInput = numeric_field()
     limit_inputs: bool = field(default=True, metadata={"is_bool": True})
-    max_skin_blood_flow: float | int | np.ndarray | list = field(
-        default=80, metadata={"types": (float, int, np.ndarray, list)}
+    max_skin_blood_flow: NumericInput = numeric_field(80)
+    max_sweating: NumericInput = numeric_field(500)
+    met: NumericInput = numeric_field()
+    p_atm: NumericInput = numeric_field(101325)
+    position: str | np.ndarray | list = choice_field(
+        [Postures.sitting.value, Postures.standing.value, "standing, forced convection"]
     )
-    max_sweating: float | int | np.ndarray | list = field(
-        default=500, metadata={"types": (float, int, np.ndarray, list)}
+    posture: str | np.ndarray | list = choice_field(
+        [Postures.sitting.value, Postures.standing.value, Postures.crouching.value]
     )
-    met: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    p_atm: float | int | np.ndarray | list = field(
-        default=101325, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    position: str | np.ndarray | list = field(
-        default=None,
-        metadata={
-            "allowed": [
-                Postures.sitting.value,
-                Postures.standing.value,
-                "standing, forced convection",
-            ]
-        },
-    )
-    posture: str | np.ndarray | list = field(
-        default=None,
-        metadata={
-            "allowed": [
-                Postures.sitting.value,
-                Postures.standing.value,
-                Postures.crouching.value,
-            ]
-        },
-    )
-    q: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    rh: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
+    q: NumericInput = numeric_field()
+    rh: NumericInput = numeric_field()
     round_output: bool = field(default=True, metadata={"is_bool": True})
-    sex: str | np.ndarray | list = field(
-        default=None, metadata={"allowed": [Sex.male.value, Sex.female.value]}
-    )
-    sharp: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    sol_altitude: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    sol_radiation_dir: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    sol_radiation_global: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    sol_transmittance: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    t_re: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    t_running_mean: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    t_sk: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    tdb: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    tg: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    thickness_quilt: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    tout: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    tr: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    twb: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
+    sex: str | np.ndarray | list = choice_field([Sex.male.value, Sex.female.value])
+    sharp: NumericInput = numeric_field()
+    sol_altitude: NumericInput = numeric_field()
+    sol_radiation_dir: NumericInput = numeric_field()
+    sol_radiation_global: NumericInput = numeric_field()
+    sol_transmittance: NumericInput = numeric_field()
+    t_re: NumericInput = numeric_field()
+    t_running_mean: NumericInput = numeric_field()
+    t_sk: NumericInput = numeric_field()
+    tdb: NumericInput = numeric_field()
+    tg: NumericInput = numeric_field()
+    thickness_quilt: NumericInput = numeric_field()
+    tout: NumericInput = numeric_field()
+    tr: NumericInput = numeric_field()
+    twb: NumericInput = numeric_field()
     units: str = field(default=Units.SI.value)
-    v: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    v_ankle: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    v_z1: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    vapor_pressure: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    vertical_tmp_grad: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    vr: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    w_max: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    wbgt: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    weight: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
+    v: NumericInput = numeric_field()
+    v_ankle: NumericInput = numeric_field()
+    v_z1: NumericInput = numeric_field()
+    vapor_pressure: NumericInput = numeric_field()
+    vertical_tmp_grad: NumericInput = numeric_field()
+    vr: NumericInput = numeric_field()
+    w_max: NumericInput = numeric_field()
+    wbgt: NumericInput = numeric_field()
+    weight: NumericInput = numeric_field()
     with_solar_load: bool = field(default=False, metadata={"is_bool": True})
-    work_intensity: str | Enum = field(
-        default=None, metadata={"allowed": [i.value for i in WorkIntensity]}
-    )
-    z0: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    z1: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    z2: float | int | np.ndarray | list = field(
-        default=None, metadata={"types": (float, int, np.ndarray, list)}
-    )
-    wme: float | int | np.ndarray | list = field(
-        default=0, metadata={"types": (float, int, np.ndarray, list)}
-    )
+    work_intensity: str | Enum = choice_field([i.value for i in WorkIntensity])
+    z0: NumericInput = numeric_field()
+    z1: NumericInput = numeric_field()
+    z2: NumericInput = numeric_field()
+    wme: NumericInput = numeric_field(0)
 
     def __post_init__(self) -> None:
         """Validate and normalize fields using metadata declared on each field."""
@@ -234,15 +160,17 @@ class BaseInputs:
             # Type validation
             expected_types = meta.get("types")
             if expected_types:
-                validate_type(value, f.name, expected_types)
-                # store possibly converted value back
+                value = validate_type(
+                    value=value, name=f.name, allowed_types=expected_types
+                )
+                # Store the validated and possibly normalized value.
                 setattr(self, f.name, value)
                 continue
 
             # Allowed string values validation (supports arrays/lists)
             allowed = meta.get("allowed")
             if allowed:
-                self._validate_str_values(f.name, value, allowed)
+                self._validate_str_values(name=f.name, value=value, allowed=allowed)
                 setattr(self, f.name, value)
                 continue
 
@@ -256,9 +184,15 @@ class BaseInputs:
 
     @staticmethod
     def _validate_str_values(name: str, value: Any, allowed: list[str]) -> None:
-        arr = np.atleast_1d(value)
-        # Coerce Enums to their .value, then to str
-        coerced = [v.value if isinstance(v, Enum) else str(v) for v in arr.tolist()]
+        # Read Enum values before numpy sees them: np.atleast_1d turns a str-based
+        # Enum such as WorkIntensity into a truncated str, losing .value (#470).
+        if isinstance(value, np.ndarray):
+            items = value.ravel().tolist()
+        elif isinstance(value, (list, tuple)):
+            items = list(value)
+        else:
+            items = [value]
+        coerced = [v.value if isinstance(v, Enum) else str(v) for v in items]
         allowed_lower = {str(a).lower() for a in allowed}
         for v in coerced:
             if v.lower() not in allowed_lower:
@@ -303,6 +237,7 @@ class ASHRAEInputs(BaseInputs):
         t_running_mean,
         v,
         units,
+        round_output=True,
     ):
         super().__init__(
             tdb=tdb,
@@ -310,6 +245,7 @@ class ASHRAEInputs(BaseInputs):
             v=v,
             units=units,
             t_running_mean=t_running_mean,
+            round_output=round_output,
         )
 
 
@@ -322,6 +258,7 @@ class ENInputs(BaseInputs):
         t_running_mean,
         v,
         units,
+        round_output=True,
     ):
         super().__init__(
             tdb=tdb,
@@ -329,6 +266,7 @@ class ENInputs(BaseInputs):
             v=v,
             units=units,
             t_running_mean=t_running_mean,
+            round_output=round_output,
         )
 
 
@@ -344,6 +282,7 @@ class AnkleDraftInputs(BaseInputs):
         clo,
         v_ankle,
         units=Units.SI.value,
+        limit_inputs=True,
     ):
         # Initialize with only required fields, setting others to None
         super().__init__(
@@ -355,6 +294,7 @@ class AnkleDraftInputs(BaseInputs):
             clo=clo,
             v_ankle=v_ankle,
             units=units,
+            limit_inputs=limit_inputs,
         )
 
 
@@ -1267,6 +1207,7 @@ class VerticalTGradPPDInputs(BaseInputs):
         clo,
         vertical_tmp_grad,
         units=Units.SI.value,
+        limit_inputs=True,
     ):
         # Initialize with only required fields, setting others to None
         super().__init__(
@@ -1278,6 +1219,7 @@ class VerticalTGradPPDInputs(BaseInputs):
             clo=clo,
             vertical_tmp_grad=vertical_tmp_grad,
             units=units,
+            limit_inputs=limit_inputs,
         )
 
 
@@ -1382,9 +1324,9 @@ class ScaleWindSpeedLogInputs(BaseInputs):
         self,
         v_z1,
         z2,
-        z1: float | int | np.ndarray | list = 10.0,
-        z0: float | int | np.ndarray | list = 0.01,
-        d: float | int | np.ndarray | list = 0.0,
+        z1: NumericInput = 10.0,
+        z0: NumericInput = 0.01,
+        d: NumericInput = 0.0,
     ):
         super().__init__(
             v_z1=v_z1,
@@ -1463,3 +1405,176 @@ class ScaleWindSpeedLogInputs(BaseInputs):
         self.z1 = z1
         self.z0 = z0
         self.d = d
+
+
+@dataclass
+class SportsHeatStressInputs(BaseInputs):
+    """Inputs for
+    :func:`pythermalcomfort.models.sports_heat_stress_risk.sports_heat_stress_risk`.
+
+    Parameters
+    ----------
+    tdb : float or array-like
+        Dry bulb air temperature in degrees Celsius (°C).
+    tr : float or array-like
+        Mean radiant temperature in degrees Celsius (°C).
+    rh : float or array-like
+        Relative humidity in percent (%). Values must be in the interval [0, 100].
+    vr : float or array-like
+        Relative air speed in metres per second (m/s). Values must be non-negative.
+        Values lower than ``sport.vr`` are accepted and set to ``sport.vr`` by
+        :func:`pythermalcomfort.models.sports_heat_stress_risk.sports_heat_stress_risk`.
+    sport : _SportsValues
+        Sport-specific parameters. Use one of the entries from
+        :class:`pythermalcomfort.models.sports_heat_stress_risk.Sports` (e.g. ``Sports.RUNNING``).
+
+    Raises
+    ------
+    TypeError
+        If ``sport`` is not a ``_SportsValues`` instance.
+    ValueError
+        If ``rh`` contains values outside [0, 100], ``vr`` contains negative values,
+        or the input arrays are not broadcastable to a common shape.
+
+    Examples
+    --------
+    >>> from pythermalcomfort.classes_input import SportsHeatStressInputs
+    >>> from pythermalcomfort.models.sports_heat_stress_risk import Sports
+    >>> SportsHeatStressInputs(tdb=35, tr=35, rh=40, vr=0.5, sport=Sports.RUNNING)
+    """
+
+    def __init__(
+        self,
+        tdb: NumericInput,
+        tr: NumericInput,
+        rh: NumericInput,
+        vr: NumericInput,
+        sport: _SportsValues,
+    ):
+        # Store sport before calling super().__init__() as it's not a BaseInputs field
+        self.sport = sport
+
+        super().__init__(
+            tdb=tdb,
+            tr=tr,
+            rh=rh,
+            vr=vr,
+        )
+
+    def __post_init__(self):
+        # Validate sport is a _SportsValues instance before calling super().__post_init__()
+        from pythermalcomfort.models.sports_heat_stress_risk import _SportsValues
+
+        if not isinstance(self.sport, _SportsValues):
+            raise TypeError(
+                "sport must be a _SportsValues instance from the Sports dataclass."
+            )
+
+        super().__post_init__()
+
+        # Convert to numpy arrays for validation
+        tdb = np.asarray(self.tdb, dtype=float)
+        tr = np.asarray(self.tr, dtype=float)
+        rh = np.asarray(self.rh, dtype=float)
+        vr = np.asarray(self.vr, dtype=float)
+
+        # Check broadcasting compatibility
+        try:
+            np.broadcast_arrays(tdb, tr, rh, vr)
+        except ValueError as err:
+            raise ValueError(
+                "Input arrays (tdb, tr, rh, vr) are not broadcastable to a common shape."
+            ) from err
+
+        # Validate relative humidity range
+        if np.any(rh < 0) or np.any(rh > 100):
+            raise ValueError("Relative humidity (rh) must be between 0 and 100%.")
+
+        # Validate air speed is non-negative
+        if np.any(vr < 0):
+            raise ValueError("Relative air speed (vr) must be non-negative.")
+
+
+@dataclass
+class IREQInputs(BaseInputs):
+    p: float | int | np.ndarray | list = field(
+        default=None, metadata={"types": (float, int, np.ndarray, list)}
+    )
+    walk_sp: float | int | np.ndarray | list = field(
+        default=None, metadata={"types": (float, int, np.ndarray, list)}
+    )
+
+    def __init__(
+        self,
+        tdb,
+        tr,
+        vr,
+        rh,
+        met,
+        clo,
+        p,
+        walk_sp,
+        wme=0,
+        limit_inputs=True,
+        round_output=True,
+    ):
+        self.p = p
+        self.walk_sp = walk_sp
+        super().__init__(
+            tdb=tdb,
+            tr=tr,
+            vr=vr,
+            rh=rh,
+            met=met,
+            clo=clo,
+            wme=wme,
+            limit_inputs=limit_inputs,
+            round_output=round_output,
+        )
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        values = {
+            "tdb": self.tdb,
+            "tr": self.tr,
+            "vr": self.vr,
+            "rh": self.rh,
+            "met": self.met,
+            "clo": self.clo,
+            "p": self.p,
+            "walk_sp": self.walk_sp,
+            "wme": self.wme,
+        }
+        arrays = {
+            name: np.atleast_1d(np.asarray(value, dtype=float))
+            for name, value in values.items()
+        }
+
+        try:
+            broadcasted = np.broadcast_arrays(*arrays.values())
+        except ValueError as err:
+            raise ValueError(
+                "IREQ inputs are not broadcastable to a common shape."
+            ) from err
+
+        for name, value in zip(arrays.keys(), broadcasted, strict=True):
+            if np.any(~np.isfinite(value)):
+                msg = f"{name} must contain finite values."
+                raise ValueError(msg)
+            setattr(self, name, value.astype(float))
+
+        if np.any(self.met <= 0):
+            raise ValueError("Metabolic rate (met) must be greater than 0.")
+        if np.any(self.wme < 0):
+            raise ValueError("External work (wme) must be non-negative.")
+        if np.any(self.p <= 0):
+            raise ValueError("Air permeability (p) must be greater than 0.")
+        if np.any(self.vr < 0):
+            raise ValueError("Relative air speed (vr) must be non-negative.")
+        if np.any(self.walk_sp < 0):
+            raise ValueError("Walking speed (walk_sp) must be non-negative.")
+        if np.any(self.rh < 0) or np.any(self.rh > 100):
+            raise ValueError("Relative humidity (rh) must be between 0 and 100.")
+        if np.any(self.clo < 0):
+            raise ValueError("Clothing insulation (clo) must be non-negative.")

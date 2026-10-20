@@ -1,15 +1,533 @@
 Changelog
 =========
 
-3.9.0 (2025-11-12)
+Unreleased
+----------
+
+* Added ``bfu_rest`` (Morris et al., 2021) and ``bfu_occupational``
+  (Foster et al., 2021) to compare heat storage with and without fan use.
+
+* Dropped support for Python 3.10, which reached end of life in October 2026.
+  pythermalcomfort now requires Python 3.11 or later. Users on Python 3.10 keep
+  getting 4.6.2 from pip.
+* ``AdaptivePlot.plot()`` now hides background grid lines by default. Pass
+  ``grid=True`` to display them (`#433
+  <https://github.com/pythermalcomfort/pythermalcomfort/issues/433>`_).
+* Fixed the applicability limit of ``adaptive_en``: with ``limit_inputs=True`` it
+  now returns NaN for running mean outdoor temperatures above 30 °C (EN 16798-1),
+  as its docstring already stated, instead of the ASHRAE 55 limit of 33.5 °C. The
+  default x-axis range of ``AdaptivePlot`` for ``adaptive_en`` is now 10-30 °C.
+* Added an example to the ``AdaptivePlot`` notebook that computes the running mean
+  outdoor temperature (EN 16798) and the prevailing mean outdoor air temperature
+  (ASHRAE 55) from hourly outdoor temperatures with
+  ``running_mean_outdoor_temperature`` and overlays hourly indoor temperatures on
+  both charts (`#457 <https://github.com/pythermalcomfort/pythermalcomfort/issues/457>`_).
+* Fixed ``solar_gain`` for ``posture="supine"``: the floor-reflected term used the
+  transposed (body-relative) altitude instead of the solar altitude. The transposed
+  angles are now used only for the projected area factor lookup, which matches the
+  CBE Thermal Comfort Tool. Supine ``erf`` and ``delta_mrt`` values change
+  (`#438 <https://github.com/pythermalcomfort/pythermalcomfort/pull/438>`_).
+
+4.6.2 (2026-10-15)
 ------------------
 
-* Added two biophysical fan use models for determining safe fan use limits: Resting [Morris2021]_ and Occupational [Foster2021]_
+* Removed the ``numpy<2.3`` upper bound from the install requirements. numba already
+  pins the numpy versions it supports, so pythermalcomfort now accepts the same range.
+  Installing it no longer downgrades numpy 2.3 or later
+  (`#479 <https://github.com/pythermalcomfort/pythermalcomfort/issues/479>`_).
+* ``setuptools`` is no longer an install requirement: pythermalcomfort only uses it to
+  build the package, not at runtime. Installing pythermalcomfort no longer pins or
+  upgrades it. Raised the docs-build minimums flagged by Snyk to ``mistune>=3.3.3``,
+  ``soupsieve>=2.9.2`` and ``tornado>=6.5.2``
+  (`#379 <https://github.com/pythermalcomfort/pythermalcomfort/issues/379>`_).
+* Fixed ``work_capacity_hothaps`` and ``work_capacity_dunne`` rejecting a
+  ``WorkIntensity`` member (e.g. ``WorkIntensity.MODERATE``) as ``work_intensity`` with
+  "must be one of", while the same value as a string worked
+  (`#470 <https://github.com/pythermalcomfort/pythermalcomfort/issues/470>`_).
+* Internal calls between package functions now pass arguments by keyword, so two
+  same-typed arguments (e.g. ``tdb`` and ``tr``) cannot be swapped silently. A new test
+  checks every call in the package for this. The ``pmv_e`` and ``ankle_draft``
+  docstring examples now use keyword arguments. Public function signatures and results
+  are unchanged
+  (`#441 <https://github.com/pythermalcomfort/pythermalcomfort/issues/441>`_).
+* Fixed the ``heat_index_lu`` docstring example, which showed 25.9 instead of the 25.0
+  the call returns, and updated the Lu and Romps reference to the published 2022 paper
+  (`#257 <https://github.com/pythermalcomfort/pythermalcomfort/issues/257>`_).
+* Fixed ``JOS3`` initialization for low metabolic rates by allowing its internal
+  neutral-temperature search outside ISO 7730's comfort applicability limits. This
+  prevents discontinuous or NaN core and skin set points and resulting NaN simulations.
+  Previously affected set points change; the public ``pmv_ppd_iso()`` applicability
+  limits remain unchanged
+  (`#435 <https://github.com/pythermalcomfort/pythermalcomfort/issues/435>`_).
+* Fixed ``utci()`` missing humidity applicability checks. With ``limit_inputs=True``
+  (the default), relative humidity outside 0-100 % or water vapour pressure outside
+  0-5 kPa now gives NaN values and stress categories with a warning, instead of
+  misleading polynomial extrapolation in extreme humid heat (e.g. -326 °C at 50 °C and
+  100 % RH). These limits match the input checks of the official UTCI program.
+  ``limit_inputs=False`` keeps the previous values
+  (`#410 <https://github.com/pythermalcomfort/pythermalcomfort/issues/410>`_).
+* Fixed the ``solar_gain`` docstring example, which showed ``erf`` 42.9 and
+  ``delta_mrt`` 10.3 instead of the 43.3 and 10.4 the call returns
+  (`#449 <https://github.com/pythermalcomfort/pythermalcomfort/issues/449>`_).
+* Sped up ``sports_heat_stress_risk`` by roughly 3-9x (depending on the sport's
+  duration) (`#396 <https://github.com/pythermalcomfort/pythermalcomfort/issues/396>`_).
+  The ``brentq`` threshold solvers now call the PHS scalar kernel directly instead of
+  the public ``phs()``, skipping its input validation and the ``numba`` parallel array
+  dispatch on every solver iteration. Results are unchanged.
 
-3.8.0 (2025-11-12)
+4.6.1 (2026-10-06)
 ------------------
 
-* Fixed the equation to calculate the dew point temperature in the utilities module to comply with WMO 2024 guidelines.
+* Fixed ``AdaptivePlot.plot()``'s default x-axis label to use the terminology of
+  the active standard: ``Prevailing Mean Outdoor Air Temperature [°C]`` for
+  ASHRAE 55 (previously missing "Air") and ``Running Mean Outdoor Temperature
+  [°C]`` for EN 16798 (previously used the ASHRAE wording) (#418).
+* Fixed ``vertical_tmp_grad_ppd`` returning negative ``ppd_vg`` values for small
+  gradients or warm thermal sensation; the result is now set to 0 when the
+  logistic model is below the 34.5 % baseline (Liu et al. 2020, eq. 3).
+* Fixed ``AdaptivePlot`` losing or mislabeling legend entries for comfort bands and
+  the center line when the legend is rebuilt after adding measured data (#415).
+* ``PsychrometricPlot`` draws constant-RH background curves at 25 % intervals
+  instead of 10 %, and RH labels use Matplotlib's default font size instead of a
+  fixed 8 pt, for readability on charts of different sizes.
+* Fixed ``AdaptivePlot.plot()`` showing Matplotlib's internal auto-generated
+  label (e.g. ``_child0``) in the legend when ``fill_kws`` or
+  ``center_line_kws`` explicitly passed ``label=None``, instead of falling
+  back to the band's or center line's configured default label.
+
+4.6.0 (2026-09-17)
+------------------
+
+* Standardized the default plot palette: cooler regions progress from pale to muted
+  blue, warmer regions from pale to muted terracotta, and a true central comfort
+  region uses neutral gray. Out-of-model-limit areas use a contrasting neutral gray,
+  and plots limit each axis to six major tick labels by default.
+* Added an annual PMV heatmap-and-summary Matplotlib recipe to the plotting examples.
+* Deprecated the following legacy public import paths. They continue to work for two
+  minor releases and emit ``DeprecationWarning`` pointing to their new locations;
+  this is not an immediate breaking change.
+
+  * Environment calculations:
+
+    * ``pythermalcomfort.utilities.mean_radiant_tmp`` →
+      ``pythermalcomfort.environment.mean_radiant_tmp``
+    * ``pythermalcomfort.utilities.operative_tmp`` →
+      ``pythermalcomfort.environment.operative_tmp``
+    * ``pythermalcomfort.utilities.running_mean_outdoor_temperature`` →
+      ``pythermalcomfort.environment.running_mean_outdoor_temperature``
+    * ``pythermalcomfort.utilities.transpose_sharp_altitude`` →
+      ``pythermalcomfort.environment.transpose_sharp_altitude``
+    * ``pythermalcomfort.utilities.f_svv`` →
+      ``pythermalcomfort.environment.f_svv``
+    * ``pythermalcomfort.utilities.v_relative`` →
+      ``pythermalcomfort.environment.v_relative``
+    * ``pythermalcomfort.utils.scale_wind_speed_log`` →
+      ``pythermalcomfort.environment.scale_wind_speed_log``
+
+  * Psychrometric calculations:
+
+    * ``pythermalcomfort.utilities.p_sat`` →
+      ``pythermalcomfort.psychrometrics.p_sat``
+    * ``pythermalcomfort.utilities.p_sat_torr`` →
+      ``pythermalcomfort.psychrometrics.p_sat_torr``
+    * ``pythermalcomfort.utilities.antoine`` →
+      ``pythermalcomfort.psychrometrics.antoine``
+    * ``pythermalcomfort.utilities.psy_ta_rh`` →
+      ``pythermalcomfort.psychrometrics.psy_ta_rh``
+    * ``pythermalcomfort.utilities.hr_to_rh`` →
+      ``pythermalcomfort.psychrometrics.hr_to_rh``
+    * ``pythermalcomfort.utilities.wet_bulb_tmp`` →
+      ``pythermalcomfort.psychrometrics.wet_bulb_tmp``
+    * ``pythermalcomfort.utilities.dew_point_tmp`` →
+      ``pythermalcomfort.psychrometrics.dew_point_tmp``
+    * ``pythermalcomfort.utilities.enthalpy_air`` →
+      ``pythermalcomfort.psychrometrics.enthalpy_air``
+
+  * Clothing calculations:
+
+    * ``pythermalcomfort.utilities.clo_dynamic_ashrae`` →
+      ``pythermalcomfort.clothing.clo_dynamic_ashrae``
+    * ``pythermalcomfort.utilities.clo_dynamic_iso`` →
+      ``pythermalcomfort.clothing.clo_dynamic_iso``
+    * ``pythermalcomfort.utilities.clo_intrinsic_insulation_ensemble`` →
+      ``pythermalcomfort.clothing.clo_intrinsic_insulation_ensemble``
+    * ``pythermalcomfort.utilities.clo_area_factor`` →
+      ``pythermalcomfort.clothing.clo_area_factor``
+    * ``pythermalcomfort.utilities.clo_insulation_air_layer`` →
+      ``pythermalcomfort.clothing.clo_insulation_air_layer``
+    * ``pythermalcomfort.utilities.clo_total_insulation`` →
+      ``pythermalcomfort.clothing.clo_total_insulation``
+    * ``pythermalcomfort.utilities.clo_correction_factor_environment`` →
+      ``pythermalcomfort.clothing.clo_correction_factor_environment``
+
+* Moved internal-only ``valid_range`` and ``mapping`` from
+  ``pythermalcomfort.shared_functions`` to
+  ``pythermalcomfort._internal.validation`` as ``_valid_range`` and ``_mapping``.
+  These private helpers were never public API, so no compatibility aliases are
+  provided.
+* Fixed ``validate_type`` so NumPy scalar inputs are returned as native Python
+  scalars, and updated input dataclasses to store those normalized values.
+* **Breaking (plots only):** ``ThresholdPlot`` (and therefore
+  ``PsychrometricPlot``) now finds region boundaries by root-finding instead of
+  contouring a raster grid. For every row of the plot it bisects to the exact
+  place where the output crosses a threshold, and where the model leaves its
+  applicability limits, then fills between the resulting curves. Region edges
+  and the out-of-model-limits area follow smooth curves rather than grid steps.
+  Where a boundary lies no longer depends on ``resolution`` at all; sampling
+  only decides whether a feature is *found*, so a model that turns sharply
+  enough to hide a crossing between two samples still needs a finer setting.
+  Charts where
+  several limits clip each other -- ``pmv_ppd_iso``, whose PMV, dry-bulb and
+  vapour-pressure limits used to leave a staircase of grey squares -- benefit
+  most.
+
+  A threshold may be crossed more than once along a row, and each crossing gets
+  its own curve. ``ppd`` is the usual case: it falls to a minimum at neutrality
+  and rises again, so "PPD below 10" is a strip with "above 10" on both sides.
+  Such a chart used to be drawn on the raster path and came out jagged; it is
+  now solved like any other.
+
+  The boundaries come back as coordinate arrays in ``result.boundaries``, one
+  ``BoundaryCurve`` per threshold per branch, with ``.threshold``, ``.branch``,
+  ``.x`` and ``.y``, so they can be re-used, exported or re-styled directly.
+
+  **The contour backend is gone**, along with ``plot()``'s ``backend`` argument
+  and ``result.backend``. Geometry that cannot be laid out the same way in
+  every row -- an internal hole in the model's valid area, or a pair of
+  crossings that only appears partway up the chart -- now raises ``ValueError``
+  rather than silently falling back to a grid-stepped rendering. Narrowing the
+  axis ranges to where the model is well behaved is usually the fix;
+  ``utci()``, for instance, needs ``tdb`` capped near 42 degC before its
+  polynomial stops diverging (see #410).
+
+  ``result.fills`` is consequently a list of one ``fill_between`` polygon per
+  band rather than a single ``ContourSet``, and ``fill_kws`` reaches
+  ``ax.fill_between`` rather than ``ax.contourf``. Code testing
+  ``isinstance(artist, QuadContourSet)`` no longer matches.
+
+* ``resolution`` is now optional on ``set_x_axis`` and ``set_y_axis``. It never
+  set the precision of a boundary -- bisection does -- so it only matters for a
+  model that turns sharply enough to step over a feature between samples. Both
+  axes have sampling floors, so omitting it gives a chart that is already
+  smooth.
+
+* Threshold boundary lines are now hidden by default (``show_lines=True``
+  brings them back): the region fills meet exactly on the boundary, so the
+  colour change already marks it and the extra line mostly added weight. The
+  out-of-model-limits shading is a light neutral gray (``#C4C9CC``).
+  The grid and the top and right spines are now set on the axis rather than
+  through ``rc_context``, which fixes charts drawn on a caller-supplied ``ax``
+  keeping whatever frame and grid the caller's ``rcParams`` gave them --
+  multi-panel figures were previously styled inconsistently. Call
+  ``result.ax.grid(True)`` to put the grid back.
+
+* Threshold and psychrometric charts evaluate their model with
+  ``round_output=False``. Models round for display -- ``pmv_ppd_iso`` to 0.01
+  PMV -- which turns the output into a staircase, and bisecting
+  ``output >= threshold`` on a staircase parks the boundary on the edge of a
+  quantisation plateau instead of the real crossing: about 0.03 degC of
+  dry-bulb at a typical PMV slope. Setting ``round_output`` through
+  ``set_params`` still overrides this.
+
+* Threshold and psychrometric charts no longer relay the models'
+  out-of-applicability-limits warnings. Sweeping across those limits is how the
+  chart finds the out-of-model-limits area, so the warning fired on every grid
+  evaluation and said nothing the chart was not about to shade -- one
+  129-point sweep of ``pmv_ppd_iso`` raises two warnings of about 500
+  characters each, and a notebook full of charts drowned in them. Calling a
+  model directly still warns exactly as before, and only that one message is
+  filtered -- warnings reporting a calculation going wrong, such as
+  ``cooling_effect``'s solver returning zero, still reach the caller.
+
+* A chart title now sits above however many rows its legend needs, instead of
+  at a fixed height: a five-region chart wrapped its legend onto two rows and
+  the title landed in the middle of it. The fixed height was marginally too low
+  even for a one-row legend, so titles were always very slightly clipped.
+
+* ``PsychrometricPlot`` writes each constant-RH label on its curve, rotated to
+  follow it and set in a gap left in the curve, rather than parking it at the
+  curve's end. The curves fan out, and a label beside the bundle is easy to
+  read against the wrong line.
+
+* Fixed ``heat_index_rothfusz`` and ``heat_index_schoen`` classifying heat stress
+  from the rounded heat index. Categories now use the unrounded SI value, so
+  ``round_output`` only affects the returned numeric heat index (#381).
+* Sped up ``two_nodes_gagge_ji`` by compiling its per-simulation time loop with
+  Numba and parallelizing independent array inputs.
+
+4.5.0 (2026-09-15)
+------------------
+
+* **Breaking (plots only):** ``PsychrometricPlot``'s y-axis is now expressed in
+  **g of water per kg of dry air** instead of kg/kg. Typical indoor humidity
+  ratios are 5-20 g/kg, which is far easier to read than 0.005-0.020 kg/kg.
+  Pass ``.set_y_axis("hr", 0.0, 30.0, resolution=1.0)`` where you previously
+  passed ``.set_y_axis("hr", 0.0, 0.030, resolution=0.001)``. A y-axis whose
+  upper bound is below 1 g/kg now emits a ``UserWarning`` explaining the
+  change, so an un-migrated call is flagged rather than silently rendering a
+  blank chart. It warns rather than raises because humidity ratios below
+  1 g/kg are physically real in cold or very dry air (at -20 degC, 0.5 g/kg is
+  roughly 80 % RH), which this package supports
+  (`#338 <https://github.com/pythermalcomfort/pythermalcomfort/issues/338>`_).
+
+  This does **not** change the psychrometric utilities. ``psy_ta_rh(...).hr``
+  still *returns* kg/kg dry air, and ``hr_to_rh()`` and ``enthalpy_air()``
+  still *accept* it, which is the SI convention and matches ASHRAE
+  Fundamentals. So multiply by 1000 when plotting ``psy_ta_rh(...).hr`` on
+  this chart, and divide by 1000 when passing a value read off this chart to
+  ``hr_to_rh()`` or ``enthalpy_air()``.
+* ``PsychrometricPlot`` now labels its own y-axis. Previously it inherited
+  ``ThresholdPlot``'s behaviour of labelling the axis with the raw parameter
+  name, so the axis read ``hr`` unless the caller set a label. Every caller
+  therefore wrote its own and they disagreed with each other about the units.
+  Override with ``result.ax.set_ylabel(...)`` if needed.
+* Fixed ``two_nodes_gagge_sleep`` silently truncating or coercing a non-integer
+  ``ltime`` keyword argument (e.g. ``1.5`` became one iteration, ``"1"`` was
+  accepted as a string) instead of raising. Non-``int`` values now raise
+  ``TypeError``, and values below 1 now raise ``ValueError`` rather than
+  running zero iterations.
+* Fixed invalid Numba annotations on the vectorised helpers in
+  ``heat_index_lu``, ``heat_index_rothfusz``, ``heat_index_schoen``, and
+  ``utci``. The scalar kernels keep ordinary ``float`` annotations and the
+  ``vectorize`` decorators are now typed to reflect that they accept both
+  scalars and arrays. The explicit Numba signatures are unchanged, so results
+  are unaffected
+  (`#393 <https://github.com/pythermalcomfort/pythermalcomfort/issues/393>`_).
+* Documentation: clarified the ``pmv_ppd_iso`` model parameters, distinguished
+  the ASHRAE and EN acceptability outputs of the adaptive models, and
+  documented the air-speed assumptions behind ``AdaptivePlot`` scatter
+  overlays.
+
+4.4.3 (2026-09-14)
+------------------
+
+* Fixed ``JOS3.dict_results()`` returning body part names instead of simulated
+  values (`#264 <https://github.com/pythermalcomfort/pythermalcomfort/issues/264>`_).
+  Each per-segment column was built by zipping its keys against a ``JOS3BodyParts``
+  ``__dict__``; iterating a dict yields its keys, so roughly 570 of the 577 columns
+  held strings such as ``"head"`` rather than temperatures. Only the aggregate
+  scalars (``t_skin_mean`` and similar) were correct. ``JOS3.to_csv()`` is affected
+  too, since it is built on ``dict_results()``.
+* Fixed per-segment values for variables defined on only part of the body
+  (``t_muscle``, ``t_fat``) in ``JOS3.dict_results()``. Their column names came from
+  ``VINDEX`` while their values were taken as the first *n* entries of a full
+  17-segment container, so ``t_muscle_pelvis`` carried the neck's value. Names and
+  values are now selected with the same indices. Note ``t_superficial_vein`` remains
+  mislabelled: it packs 12 limb values into the container's first 12 slots, and
+  relabelling requires confirming the intended segment mapping.
+* Fixed ``examples/calc_jos3.py`` setting ``model.icl``, which ``JOS3`` does not
+  define. Clothing insulation is exposed as ``clo``, so the assignment created an
+  unused attribute and the Stolwijk & Hardy validation ran at 0 clo, i.e. a nude
+  subject, rather than the intended 0.3 clo pattern.
+* The JOS-3 human-subject reference data ships as CSV instead of ``.xlsx``. Reading
+  it previously required ``openpyxl``, which is not a dependency of this package, so
+  ``validation_simulation()`` failed for anyone running the examples as documented.
+  The values are unchanged; read them with
+  ``pd.read_csv(..., float_precision="round_trip")``.
+* Added ``examples/manuscript-v4/``, the reproducible scripts behind the figures in
+  the *Building Simulation* manuscript describing this package, including a new
+  JOS-3 transient example comparing simulated rectal and mean skin temperature
+  against Stolwijk & Hardy (1966) human-subject data.
+* Sped up ``two_nodes_gagge_sleep`` by compiling its stateful simulation loop
+  with Numba while preserving its public output values and shapes. Empty
+  ``tdb``/``tr``/``v``/``rh``/``clo``/``thickness_quilt`` inputs now raise a
+  clear ``ValueError`` instead of failing with an unrelated ``TypeError``.
+* Addressed Copilot review feedback on the 4.4.1 ``phs`` fix: pass ``param_name``
+  explicitly to ``valid_range()`` for the ``(tr - tdb)`` check, and added regression
+  tests for the applicability-limit and minute-1 skin-temperature behavior.
+* Fixed the saturation vapour pressure calculation in ``utci``
+  (`#372 <https://github.com/pythermalcomfort/pythermalcomfort/issues/372>`_): the
+  Hardy/Wexler equation's ``ln(T)`` term used ``np.log1p`` (which computes
+  ``ln(1 + T)``) instead of ``np.log``, inflating the saturation vapour pressure by
+  ~1%. The resulting UTCI error is negligible in mild conditions (~0.03 °C at 25 °C,
+  50% RH) but grows to ~0.7 °C at 40 °C, 80% RH, where UTCI matters most for heat
+  stress assessment. Updated the affected hard-coded test expectations and added a
+  regression test cross-checking ``utci``'s vapour pressure against ``p_sat``.
+
+4.4.2 (2026-09-02)
+------------------
+
+* Pinned ``tests/conftest.py``'s ``validation-data-comfort-models`` fixture URL to the
+  ``v1.0.0`` tag instead of ``main``, so upstream fixture changes can't silently affect
+  CI before the pin is deliberately bumped and reviewed. See ``CONTRIBUTING.rst``'s
+  "Keeping the validation-data-comfort-models pin current" section.
+
+4.4.1 (2026-08-18)
+------------------
+
+* Fixed the ``phs`` applicability limits (`#225 <https://github.com/pythermalcomfort/pythermalcomfort/issues/225>`_):
+    - the ``tr`` limit is now checked against ``ISO 7933 Annex A, Table A.1``'s actual
+      ``0 < (tr - tdb) < 60`` range, instead of checking raw ``tr`` against ``(0, 60)``.
+    - the metabolic rate limit is now standard-specific: ``100-450 W/m2`` (1.7-7.5 met)
+      for the 2004 standard, ``56-250 W/m2`` (0.96-4.3 met) for the 2023 standard,
+      instead of always using the 2004 range.
+* Added the ISO 7933:2023 Annex E minute-1 skin temperature special case to the
+  ``phs`` 2023 model (``t_sk`` is forced to its equilibrium value on the first
+  minute), matching the standard's own reference program. This special case is
+  not present in the 2004 edition.
+
+4.4.0 (2026-07-25)
+------------------
+
+* Added ``ireq`` model to calculate Required Clothing Insulation (IREQ) and
+  Duration Limited Exposure (DLE) based on ISO 11079.
+
+4.3.0 (2026-07-24)
+------------------
+
+* Added ``SummaryPlot.set_categories()`` for summarizing an already-classified
+  per-row category array — e.g. adaptive comfort's per-row acceptability
+  bands, which can't be reduced to one continuous column plus fixed
+  thresholds the way ``set_regions()`` handles PMV/UTCI-style outputs. See
+  the ``set_categories()`` docstring for an ``np.select``-based recipe.
+
+4.2.0 (2026-07-24)
+------------------
+
+* Added a ``pa`` (water vapour partial pressure) applicability check to
+  ``pmv_ppd_iso``, per the ISO 7730 Clause 4 limit of 0 Pa to 2 700 Pa. Inputs
+  outside this range (e.g. ``tdb=30``, ``rh=100`` gives ``pa`` ~4 243 Pa) now
+  return ``nan`` instead of a value outside the standard's applicability.
+* Fixed ``clo_dynamic_iso`` to estimate walking speed using the ISO 7730
+  Annex C / ISO 9920 formula for undefined walking speed
+  (``v_walk = 0.0052 * (met * 58.15 - 58)``, clipped to 0-0.7 m/s) instead of
+  reusing ``v_relative``'s activity-generated-air-speed formula, which is a
+  distinct formula intended for the whole-body PMV heat balance rather than
+  the clothing dynamic insulation correction.
+* Corrected the initial guess for clothing surface temperature in
+  ``pmv_ppd_iso`` to match the corrected Annex D formula in ISO 7730:2025
+  (``3.5 * (6.45 * icl + 0.1)``, missing the ``6.45 *`` factor present in the
+  ISO 7730:2005 Annex D listing). This only affects the starting point of the
+  iterative solver and does not change any output value.
+* Added ``"7730-2025"`` as a supported ``model`` value for ``pmv_ppd_iso``
+  and made it the default, since ISO 7730:2025 is now the current edition of
+  the standard. ``"7730-2005"`` remains supported for backwards
+  compatibility; both currently return identical results since the PMV/PPD
+  formulae are unchanged between editions.
+
+4.1.1 (2026-07-20)
+------------------
+
+* Sped up ``cooling_effect`` (~10x) by calling the already numba-jitted Gagge
+  two-node kernel directly instead of the full ``set_tmp()`` public API on
+  every root-finding iteration.
+* Sped up ``solar_gain`` (~100x+) with numba: table-based interpolation and
+  posture handling converted to JIT-compiled code.
+* Pinned ``pillow>=10.3.0`` in docs requirements to resolve a transitive
+  Snyk-flagged vulnerability.
+* Reduced the ``build-test-publish-testPyPI.yml`` CI matrix to speed up
+  TestPyPI release checks.
+
+4.1.0 (2026-07-20)
+------------------
+
+* Added ``heat_index_schoen``, the Temperature-Humidity Index (THI) heat
+  index model in accordance with Schoen (2005).
+* Sped up ``heat_index_rothfusz``, ``heat_index_schoen``, and
+  ``heat_index_lu`` with numba JIT compilation. ``heat_index_lu`` (an
+  iterative root-solver) sees the largest gain, roughly 29x faster.
+
+4.0.3 (2026-07-20)
+------------------
+
+* Added a ``Sports.CROQUET`` preset to ``sports_heat_stress_risk``
+  (``clo=0.7, met=4.5, vr=0.5, duration=90``).
+* Fixed the extreme-risk interpolation segment so it reaches a risk level of
+  4.9 exactly 5 °C above the extreme threshold, instead of reaching it early
+  at +4.5 °C and leaving the last 0.5 °C of the range dead.
+* Fixed an inconsistency in ``sports_heat_stress_risk``'s extreme-risk
+  interpolation: the upper anchor temperature used internally to scale the
+  risk level was the raw, unrounded solver output, while the ``t_extreme``
+  value returned to callers is rounded to one decimal. This could produce a
+  risk level inconsistent with the documented/returned thresholds. The
+  interpolation now uses the same rounded ``t_extreme`` that is returned.
+
+4.0.2 (2026-06-23)
+------------------
+
+* Improved sports heat stress risk interpolation within the extreme range: the
+  upper anchor temperature (where risk reaches 4.9) is now computed dynamically
+  as ``t_extreme + 5 °C``. This makes the extreme-range scale consistent across
+  humidity conditions — the risk always spans exactly 5 °C above the
+  humidity-dependent extreme threshold regardless of ambient conditions.
+
+4.0.1 (2026-06-17)
+------------------
+
+* Added Python 3.14 support. Removed ``pytest-travis-fold`` (unmaintained,
+  incompatible with Python 3.14) and lifted the ``pytest<7`` cap.
+* Fixed duplicate parametrize IDs in the ridge-regression test suite,
+  which pytest 9 now rejects (``ast.Str`` was removed in Python 3.14).
+
+4.0.0 (2026-06-16)
+------------------
+
+.. note::
+    Version 4.0.0 introduces a new **Matplotlib plotting API** under
+    ``pythermalcomfort.plots.matplotlib``. All four plot classes follow a
+    fluent builder pattern — chain setter calls and finish with ``.plot()``
+    to receive standard Matplotlib ``Figure`` / ``Axes`` handles for full
+    customisation.
+
+**New plotting module** (``pythermalcomfort.plots.matplotlib``)
+
+* ``ThresholdPlot`` — shade comfort/stress regions on any two-axis chart
+  (e.g. operative temperature vs. relative humidity, temperature vs. air
+  speed). Configure regions via ``set_regions(thresholds, labels, colors)``.
+* ``SummaryPlot`` — horizontal or vertical bar-summary chart built from a
+  ``pandas.DataFrame``; useful for comparing multiple spaces or scenarios at
+  a glance.
+* ``AdaptivePlot`` — ready-made adaptive comfort chart for ASHRAE 55 and
+  EN 16798, with configurable comfort bands.
+* ``PsychrometricPlot`` — psychrometric chart with overlaid comfort regions.
+
+All classes share a common ``BasePlot`` base and centralised visual defaults
+(``_shared.py``), making it easy to apply a consistent house style.
+
+**Other changes**
+
+* Refactored type hints across model function signatures to use a
+  ``NumericInput`` alias (``float | int | np.floating | np.integer``),
+  improving IDE auto-complete and static-analysis accuracy.
+* Added ``hr_to_rh`` utility for humidity-ratio → relative-humidity
+  conversion.
+* Minor cooling-effect calculation streamlining and constant centralisation.
+
+3.9.8 (2026-05-25)
+------------------
+
+* Added optional ``round_output`` parameter to ``adaptive_ashrae`` and ``adaptive_en``
+  to control rounding of output values.
+* Added ``limit_inputs`` parameter to ``ankle_draft`` and ``vertical_tmp_grad_ppd``,
+  consistent with other model functions.
+* ``ankle_draft`` and ``vertical_tmp_grad_ppd`` now raise ``UserWarning`` when inputs
+  exceed model applicability limits.
+* Fixed ``compliance`` attribute being included in non-ASHRAE PMV model outputs;
+  it is now only returned by ``pmv_ppd_ashrae``.
+* Fixed UTCI stress category mapping when ``units="IP"``; categories were
+  incorrectly mapped before IP unit conversion.
+
+3.9.3 (2026-05-01)
+------------------
+
+* Maintenance release: internal CI pipeline improvements and dependency updates.
+  No user-facing changes.
+
+3.9.2 (2026-04-14)
+------------------
+
+* Updated `sports_heat_stress_risk` so `risk_level_interpolated` now uses `1.0-4.0` instead of `0.0-3.0`.
+* Updated `sports_heat_stress_risk` to enforce the sport-specific minimum air speed (`sport.vr`).
+
+3.9.1 (2026-02-25)
+------------------
+
+* Improved speed of PHS model.
+
+3.9.0 (2026-02-03)
+------------------
+
+* Added `sports_heat_stress_risk` function to assess heat stress risk for athletes during outdoor sports activities based on environmental conditions. Addresses issue #237.
 
 3.7.0 (2025-10-28)
 ------------------

@@ -30,7 +30,7 @@ def read(*names: str, encoding: str = "utf8") -> str:
 
 setup(
     name="pythermalcomfort",
-    version="3.8.0",
+    version="4.6.2",
     license="MIT",
     description=(
         "pythermalcomfort is a comprehensive toolkit for calculating "
@@ -50,7 +50,7 @@ setup(
     long_description_content_type="text/x-rst",
     author="Federico Tartarini",
     author_email="cbecomforttool@gmail.com",
-    url="https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort",
+    url="https://github.com/pythermalcomfort/pythermalcomfort",
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
@@ -65,10 +65,10 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Education",
@@ -80,7 +80,7 @@ setup(
         "Documentation": "https://pythermalcomfort.readthedocs.io/",
         "Changelog": "https://pythermalcomfort.readthedocs.io/en/latest/changelog.html",
         "Issue Tracker": (
-            "https://github.com/CenterForTheBuiltEnvironment/pythermalcomfort/issues"
+            "https://github.com/pythermalcomfort/pythermalcomfort/issues"
         ),
     },
     keywords=[
@@ -97,15 +97,23 @@ setup(
         "thermal environment",
         "built environment",
     ],
-    python_requires=">=3.10.0",
+    python_requires=">=3.11.0",
     install_requires=[
         "scipy",
         "numba",
-        "numpy",
-        "setuptools",
+        "numpy>=1.21",
     ],
     extras_require={
-        "dev": ["pytest", "sphinx"],
+        "dev": [
+            "pytest",
+            "sphinx",
+            "ruff",
+            "docformatter",
+            "matplotlib>=3.8",
+            "pandas",
+            "seaborn>=0.13",
+        ],
+        "plots": ["matplotlib>=3.8", "pandas", "seaborn>=0.13"],
     },
     entry_points={
         "console_scripts": [

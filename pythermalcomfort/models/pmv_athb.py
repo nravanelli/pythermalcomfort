@@ -2,20 +2,20 @@ from __future__ import annotations
 
 import numpy as np
 
-from pythermalcomfort.classes_input import ATHBInputs
+from pythermalcomfort.classes_input import ATHBInputs, NumericInput
 from pythermalcomfort.classes_return import ATHB
 from pythermalcomfort.models._pmv_ppd_optimized import _pmv_ppd_optimized
 from pythermalcomfort.utilities import met_to_w_m2
 
 
 def pmv_athb(
-    tdb: float | list[float],
-    tr: float | list[float],
-    vr: float | list[float],
-    rh: float | list[float],
-    met: float | list[float],
-    t_running_mean: float | list[float],
-    clo: bool | float | list[float] = False,
+    tdb: NumericInput,
+    tr: NumericInput,
+    vr: NumericInput,
+    rh: NumericInput,
+    met: NumericInput,
+    t_running_mean: NumericInput,
+    clo: bool | NumericInput = False,
 ) -> ATHB:
     """Return the PMV value calculated with the Adaptive Thermal Heat Balance Framework
     [Schweiker2022]_. The adaptive thermal heat balance (ATHB) framework introduced a
@@ -40,7 +40,7 @@ def pmv_athb(
             average air speed measured by the sensor plus the activity-generated air speed
             (Vag). Where Vag is the activity-generated air speed caused by motion of
             individual body parts. vr can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.v_relative`.
+            :py:meth:`pythermalcomfort.environment.v_relative`.
 
     rh : float or list of floats
         Relative humidity, [%].
@@ -54,25 +54,25 @@ def pmv_athb(
 
         .. note::
             The running mean temperature can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.running_mean_outdoor_temperature`.
+            :py:meth:`pythermalcomfort.environment.running_mean_outdoor_temperature`.
 
     Returns
     -------
-    ATHBResults
-        Dataclass containing the results of the ATHB calculation. See :py:class:`~pythermalcomfort.classes_return.ATHBResults` for more details.
+    ATHB
+        Dataclass containing the results of the ATHB calculation. See :py:class:`~pythermalcomfort.classes_return.ATHB` for more details.
 
     Examples
     --------
     .. code-block:: python
 
-        from pythermalcomfort.models import athb
+        from pythermalcomfort.models import pmv_athb
 
         # calculate the predicted mean vote (PMV) using the Adaptive Thermal Heat Balance model
-        results = athb(tdb=25, tr=25, vr=0.1, rh=50, met=1.2, t_running_mean=20)
+        results = pmv_athb(tdb=25, tr=25, vr=0.1, rh=50, met=1.2, t_running_mean=20)
         print(results.athb_pmv)  # returns the PMV value
 
         # for multiple points
-        results = athb(
+        results = pmv_athb(
             tdb=[25, 25, 25],
             tr=[25, 25, 25],
             vr=[0.1, 0.1, 0.1],

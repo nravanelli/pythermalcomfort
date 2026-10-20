@@ -3,10 +3,16 @@ from __future__ import annotations
 import datetime as dt
 import textwrap
 from dataclasses import dataclass, fields, is_dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 from numpy._typing import NDArray
+
+if TYPE_CHECKING:
+    # Use TYPE_CHECKING to avoid circular import: utilities (where
+    # NumericInput is defined) imports PsychrometricValues from this module.
+    from pythermalcomfort.utilities import NumericInput
 
 
 class AutoStrMixin:
@@ -99,7 +105,7 @@ class APMV(AutoStrMixin):
         Predicted Mean Vote.
     """
 
-    a_pmv: float | list[float]
+    a_pmv: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -125,11 +131,11 @@ class AdaptiveASHRAE(AutoStrMixin):
         Acceptability for 90% occupants.
     """
 
-    tmp_cmf: float | list[float]
-    tmp_cmf_80_low: float | list[float]
-    tmp_cmf_80_up: float | list[float]
-    tmp_cmf_90_low: float | list[float]
-    tmp_cmf_90_up: float | list[float]
+    tmp_cmf: NumericInput
+    tmp_cmf_80_low: NumericInput
+    tmp_cmf_80_up: NumericInput
+    tmp_cmf_90_low: NumericInput
+    tmp_cmf_90_up: NumericInput
     acceptability_80: bool | list[bool]
     acceptability_90: bool | list[bool]
 
@@ -163,16 +169,16 @@ class AdaptiveEN(AutoStrMixin):
         Lower acceptable comfort temperature for category III, default in [°C] or in [°F].
     """
 
-    tmp_cmf: float | list[float]
+    tmp_cmf: NumericInput
     acceptability_cat_i: bool | list[bool]
     acceptability_cat_ii: bool | list[bool]
     acceptability_cat_iii: bool | list[bool]
-    tmp_cmf_cat_i_up: float | list[float]
-    tmp_cmf_cat_ii_up: float | list[float]
-    tmp_cmf_cat_iii_up: float | list[float]
-    tmp_cmf_cat_i_low: float | list[float]
-    tmp_cmf_cat_ii_low: float | list[float]
-    tmp_cmf_cat_iii_low: float | list[float]
+    tmp_cmf_cat_i_up: NumericInput
+    tmp_cmf_cat_ii_up: NumericInput
+    tmp_cmf_cat_iii_up: NumericInput
+    tmp_cmf_cat_i_low: NumericInput
+    tmp_cmf_cat_ii_low: NumericInput
+    tmp_cmf_cat_iii_low: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -187,7 +193,7 @@ class AnkleDraft(AutoStrMixin):
         Indicates if the air speed at the ankle level is acceptable according to ASHRAE 55 2020 standard.
     """
 
-    ppd_ad: float | list[float]
+    ppd_ad: NumericInput
     acceptability: bool | list[bool]
 
 
@@ -215,7 +221,7 @@ class ATHB(AutoStrMixin):
         Predicted Mean Vote calculated with the Adaptive Thermal Heat Balance framework.
     """
 
-    athb_pmv: float | list[float]
+    athb_pmv: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -229,7 +235,7 @@ class CloTOut(AutoStrMixin):
         Representative clothing insulation Icl.
     """
 
-    clo_tout: float | list[float]
+    clo_tout: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -242,7 +248,7 @@ class CE(AutoStrMixin):
         Cooling Effect value.
     """
 
-    ce: float | list[float]
+    ce: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -257,7 +263,7 @@ class DI(AutoStrMixin):
         Classification of the thermal comfort conditions according to the discomfort index.
     """
 
-    di: float | list[float]
+    di: NumericInput
     discomfort_condition: str | list[str]
 
 
@@ -272,7 +278,7 @@ class EPMV(AutoStrMixin):
         Adjusted Predicted Mean Votes with Expectancy Factor.
     """
 
-    e_pmv: float | list[float]
+    e_pmv: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -285,7 +291,7 @@ class ESI(AutoStrMixin):
         Environmental Stress Index.
     """
 
-    esi: float | list[float]
+    esi: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -314,7 +320,7 @@ class Humidex(AutoStrMixin):
         Degree of comfort or discomfort as defined in Havenith and Fiala (2016).
     """
 
-    humidex: float | list[float]
+    humidex: NumericInput
     discomfort: str | list[str]
 
 
@@ -399,7 +405,7 @@ class NET(AutoStrMixin):
         Normal Effective Temperature, [°C].
     """
 
-    net: float | list[float]
+    net: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -412,7 +418,7 @@ class PETSteady(AutoStrMixin):
         Physiological Equivalent Temperature.
     """
 
-    pet: float | list[float]
+    pet: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -451,17 +457,17 @@ class PHS(AutoStrMixin):
         at each 1 minute step. Intended for chaining simulation segments.
     """
 
-    t_re: float | list[float]
-    t_sk: float | list[float]
-    t_cr: float | list[float]
-    t_cr_eq: float | list[float]
-    t_sk_t_cr_wg: float | list[float]
-    d_lim_loss_50: float | list[float]
-    d_lim_loss_95: float | list[float]
-    d_lim_t_re: float | list[float]
-    sweat_loss_g: float | list[float]
-    sweat_rate_watt: float | list[float]
-    evap_load_wm2_min: float | list[float]
+    t_re: NumericInput
+    t_sk: NumericInput
+    t_cr: NumericInput
+    t_cr_eq: NumericInput
+    t_sk_t_cr_wg: NumericInput
+    d_lim_loss_50: NumericInput
+    d_lim_loss_95: NumericInput
+    d_lim_t_re: NumericInput
+    sweat_loss_g: NumericInput
+    sweat_rate_watt: NumericInput
+    evap_load_wm2_min: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -474,7 +480,7 @@ class PMV(AutoStrMixin):
         Predicted Mean Vote.
     """
 
-    pmv: float | list[float]
+    pmv: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -490,15 +496,33 @@ class PMVPPD(AutoStrMixin):
         Predicted Percentage of Dissatisfied.
     tsv : str or list of strings
         Predicted thermal sensation vote.
-    compliance : bool or list of bools, optional
-        True if PMV is within the acceptable range (-0.5 < PMV < 0.5) according to
-        ASHRAE Standard 55-2023. Only returned by pmv_ppd_ashrae function.
     """
 
-    pmv: float | list[float]
-    ppd: float | list[float]
-    tsv: float | list[float]
-    compliance: bool | list[bool] | None = None
+    pmv: NumericInput
+    ppd: NumericInput
+    tsv: NumericInput
+
+
+@dataclass(frozen=True, repr=False)
+class PMVPPDAshrae(PMVPPD):
+    """Dataclass to represent the Predicted Mean Vote (PMV) and Predicted Percentage of
+    Dissatisfied (PPD) calculated in accordance with ASHRAE Standard 55.
+
+    Attributes
+    ----------
+    pmv : float or list of floats
+        Predicted Mean Vote.
+    ppd : float or list of floats
+        Predicted Percentage of Dissatisfied.
+    tsv : str or list of strings
+        Predicted thermal sensation vote.
+    compliance : bool or list of bools
+        True if PMV is within the acceptable range (-0.5 < PMV < 0.5) according to
+        ASHRAE Standard 55-2023. When ``limit_inputs=True`` and any input is outside
+        the standard applicability limits, ``compliance`` will be ``nan``.
+    """
+
+    compliance: bool | list[bool]
 
 
 @dataclass(frozen=True, repr=False)
@@ -521,7 +545,7 @@ class SET(AutoStrMixin):
         Standard effective temperature, [°C].
     """
 
-    set: float | list[float]
+    set: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -537,8 +561,8 @@ class SolarGain(AutoStrMixin):
         temperature of the space should be increased if no solar radiation is present.
     """
 
-    erf: float | list[float]
-    delta_mrt: float | list[float]
+    erf: NumericInput
+    delta_mrt: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -586,24 +610,24 @@ class GaggeTwoNodes(AutoStrMixin):
         Predicted Thermal Sensation.
     """
 
-    e_skin: float | list[float]
-    e_rsw: float | list[float]
-    e_max: float | list[float]
-    q_sensible: float | list[float]
-    q_skin: float | list[float]
-    q_res: float | list[float]
-    t_core: float | list[float]
-    t_skin: float | list[float]
-    m_bl: float | list[float]
-    m_rsw: float | list[float]
-    w: float | list[float]
-    w_max: float | list[float]
-    set: float | list[float]
-    et: float | list[float]
-    pmv_gagge: float | list[float]
-    pmv_set: float | list[float]
-    disc: float | list[float]
-    t_sens: float | list[float]
+    e_skin: NumericInput
+    e_rsw: NumericInput
+    e_max: NumericInput
+    q_sensible: NumericInput
+    q_skin: NumericInput
+    q_res: NumericInput
+    t_core: NumericInput
+    t_skin: NumericInput
+    m_bl: NumericInput
+    m_rsw: NumericInput
+    w: NumericInput
+    w_max: NumericInput
+    set: NumericInput
+    et: NumericInput
+    pmv_gagge: NumericInput
+    pmv_set: NumericInput
+    disc: NumericInput
+    t_sens: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -618,8 +642,8 @@ class GaggeTwoNodesJi(AutoStrMixin):
         Skin temperature, [°C].
     """
 
-    t_core: float | list[float]
-    t_skin: float | list[float]
+    t_core: NumericInput
+    t_skin: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -632,7 +656,7 @@ class THI(AutoStrMixin):
         Temperature-Humidity Index (THI).
     """
 
-    thi: float | list[float]
+    thi: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -663,16 +687,16 @@ class GaggeTwoNodesSleep(AutoStrMixin):
         Skin-blood-flow rate per unit surface area, [kg/h/m2].
     """
 
-    set: float | list[float]
-    t_core: float | list[float]
-    t_skin: float | list[float]
-    wet: float | list[float]
-    t_sens: float | list[float]
-    disc: float | list[float]
-    e_skin: float | list[float]
-    met_shivering: float | list[float]
-    alfa: float | list[float]
-    skin_blood_flow: float | list[float]
+    set: NumericInput
+    t_core: NumericInput
+    t_skin: NumericInput
+    wet: NumericInput
+    t_sens: NumericInput
+    disc: NumericInput
+    e_skin: NumericInput
+    met_shivering: NumericInput
+    alfa: NumericInput
+    skin_blood_flow: NumericInput
 
 
 @dataclass(frozen=True)
@@ -715,18 +739,18 @@ class UseFansHeatwaves(AutoStrMixin):
         True if heat strain is caused by regulatory sweating (m_rsw) reaching its maximum value.
     """
 
-    e_skin: float | list[float]
-    e_rsw: float | list[float]
-    e_max: float | list[float]
-    q_sensible: float | list[float]
-    q_skin: float | list[float]
-    q_res: float | list[float]
-    t_core: float | list[float]
-    t_skin: float | list[float]
-    m_bl: float | list[float]
-    m_rsw: float | list[float]
-    w: float | list[float]
-    w_max: float | list[float]
+    e_skin: NumericInput
+    e_rsw: NumericInput
+    e_max: NumericInput
+    q_sensible: NumericInput
+    q_skin: NumericInput
+    q_res: NumericInput
+    t_core: NumericInput
+    t_skin: NumericInput
+    m_bl: NumericInput
+    m_rsw: NumericInput
+    w: NumericInput
+    w_max: NumericInput
     heat_strain: bool | list[bool]
     heat_strain_blood_flow: bool | list[bool]
     heat_strain_w: bool | list[bool]
@@ -745,7 +769,7 @@ class UTCI(AutoStrMixin):
         UTCI categorized in terms of thermal stress [Blazejczyk2013]_.
     """
 
-    utci: float | list[float]
+    utci: NumericInput
     stress_category: str | list[str]
 
 
@@ -762,7 +786,7 @@ class VerticalTGradPPD(AutoStrMixin):
         True if the value of air speed at the ankle level is acceptable (PPD_vg <= 5%).
     """
 
-    ppd_vg: float | list[float]
+    ppd_vg: NumericInput
     acceptability: bool | list[bool]
 
 
@@ -776,7 +800,7 @@ class WBGT(AutoStrMixin):
         Wet Bulb Globe Temperature Index.
     """
 
-    wbgt: float | list[float]
+    wbgt: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -789,7 +813,7 @@ class WCI(AutoStrMixin):
         Wind Chill Index, [W/m^2].
     """
 
-    wci: float | list[float]
+    wci: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -802,7 +826,7 @@ class WCT(AutoStrMixin):
         Wind Chill Temperature, [°C].
     """
 
-    wct: float | list[float]
+    wct: NumericInput
 
 
 @dataclass(frozen=True)
@@ -815,7 +839,7 @@ class WorkCapacity(AutoStrMixin):
         Work capacity affected by heat.
     """
 
-    capacity: float | list[float]
+    capacity: NumericInput
 
 
 @dataclass(frozen=True, repr=False)
@@ -863,7 +887,7 @@ class JOS3BodyParts(AutoStrMixin):
     right_leg : float
         Index of the right leg.
     right_foot : float
-        Index of the right hand.
+        Index of the right foot.
     """
 
     head: float | None = None
@@ -1115,3 +1139,58 @@ class ScaleWindSpeedLog(AutoStrMixin):
     """
 
     v_z2: npt.ArrayLike
+
+
+@dataclass(frozen=True, repr=False)
+class SportsHeatStressRisk(AutoStrMixin):
+    """Dataclass to represent the Sports Heat Stress Risk calculation results.
+
+    Attributes
+    ----------
+    risk_level_interpolated : float or list of floats
+        Interpolated risk level (1.0-4.9), [dimensionless].
+        Risk levels: 1-<2 = low, 2-<3 = moderate, 3-<4 = high,
+        4-4.9 = extreme.
+    t_medium : float or list of floats
+        Temperature threshold for medium risk level, [°C].
+    t_high : float or list of floats
+        Temperature threshold for high risk level, [°C].
+    t_extreme : float or list of floats
+        Temperature threshold for extreme risk level, [°C].
+    recommendation : str or list of str
+        Heat stress management recommendations for the calculated risk level.
+    """
+
+    risk_level_interpolated: NumericInput
+    t_medium: NumericInput
+    t_high: NumericInput
+    t_extreme: NumericInput
+    recommendation: str | list[str]
+
+
+@dataclass(frozen=True, repr=False)
+class IREQ(AutoStrMixin):
+    """Dataclass to represent the IREQ calculation results.
+
+    Attributes
+    ----------
+    ireq_min : float or list of floats
+        Minimal required clothing insulation, [clo].
+    ireq_neutral : float or list of floats
+        Neutral required clothing insulation, [clo].
+    icl_min : float or list of floats
+        Minimal intrinsic clothing insulation, [clo].
+    icl_neutral : float or list of floats
+        Neutral intrinsic clothing insulation, [clo].
+    dle_min : str, float, or list
+        Duration limited exposure for the minimal criterion, [h].
+    dle_neutral : str, float, or list
+        Duration limited exposure for the neutral criterion, [h].
+    """
+
+    ireq_min: npt.ArrayLike
+    ireq_neutral: npt.ArrayLike
+    icl_min: npt.ArrayLike
+    icl_neutral: npt.ArrayLike
+    dle_min: str | float | np.ndarray
+    dle_neutral: str | float | np.ndarray

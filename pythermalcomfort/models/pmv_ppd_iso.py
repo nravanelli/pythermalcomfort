@@ -2,27 +2,26 @@ from __future__ import annotations
 
 import numpy as np
 
-from pythermalcomfort.classes_input import PMVPPDInputs
+from pythermalcomfort._internal.validation import _mapping, _valid_range
+from pythermalcomfort.classes_input import NumericInput, PMVPPDInputs
 from pythermalcomfort.classes_return import PMVPPD
 from pythermalcomfort.models._pmv_ppd_optimized import _pmv_ppd_optimized
-from pythermalcomfort.shared_functions import mapping, valid_range
 from pythermalcomfort.utilities import (
     Models,
     Units,
-    _check_standard_compliance_array,
     units_converter,
 )
 
 
 def pmv_ppd_iso(
-    tdb: float | list[float],
-    tr: float | list[float],
-    vr: float | list[float],
-    rh: float | list[float],
-    met: float | list[float],
-    clo: float | list[float],
-    wme: float | list[float] = 0,
-    model: str = Models.iso_7730_2005.value,
+    tdb: NumericInput,
+    tr: NumericInput,
+    vr: NumericInput,
+    rh: NumericInput,
+    met: NumericInput,
+    clo: NumericInput,
+    wme: NumericInput = 0,
+    model: str = Models.iso_7730_2025.value,
     units: str = Units.SI.value,
     limit_inputs: bool = True,
     round_output: bool = True,
@@ -47,7 +46,7 @@ def pmv_ppd_iso(
             average air speed measured by the sensor plus the activity-generated air speed
             (Vag). Where Vag is the activity-generated air speed caused by motion of
             individual body parts. vr can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.v_relative`.
+            :py:meth:`pythermalcomfort.environment.v_relative`.
 
     rh : float or list of floats
         Relative humidity, [%].
@@ -62,12 +61,19 @@ def pmv_ppd_iso(
             surface to the outer clothing surface, including enclosed air layers, under actual
             environmental conditions. This value is not the total insulation (`I`:sub:`T,r`).
             The dynamic clothing insulation, clo, can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.clo_dynamic_iso`.
+            :py:meth:`pythermalcomfort.clothing.clo_dynamic_iso`.
 
     wme : float or list of floats, optional
         External work, [met]. Defaults to 0.
     model : str, optional
-        Select the model you want to use to calculate the PMV. Currently, the only option available is "7730-2005".
+        The ISO 7730 edition to reference. Supported values are "7730-2005"
+        and "7730-2025"; any other value raises a ``ValueError``. The two
+        editions currently use identical PMV/PPD equations and applicability
+        limits, so this parameter does not affect the numerical result. It is
+        retained to record the intended edition, reject unsupported edition
+        values, and allow future differentiation if the editions diverge. The
+        selected edition is not stored on the returned ``PMVPPD`` object.
+        Defaults to "7730-2025", the current edition of the standard.
     units : str, optional
         Select the SI (International System of Units) or the IP (Imperial Units) system.
         Supported values are 'SI' and 'IP'. Defaults to 'SI'.
@@ -79,8 +85,9 @@ def pmv_ppd_iso(
             function returns nan. If False returns pmv and ppd values even if input values are
             outside the applicability limits of the model.
 
-            The ISO 7730 2005 limits are 10 < tdb [°C] < 30, 10 < tr [°C] < 40,
-            0 < vr [m/s] < 1, 0.8 < met [met] < 4, 0 < clo [clo] < 2, and -2 < PMV < 2.
+            The ISO 7730 limits are 10 < tdb [°C] < 30, 10 < tr [°C] < 40,
+            0 < vr [m/s] < 1, 0.8 < met [met] < 4, 0 < clo [clo] < 2, 0 < pa [Pa] < 2700,
+            and -2 < PMV < 2.
 
     round_output : bool, optional
         If True, rounds output value. If False, it does not round it. Defaults to True.
@@ -98,7 +105,7 @@ def pmv_ppd_iso(
     .. code-block:: python
 
         from pythermalcomfort.models import pmv_ppd_iso
-        from pythermalcomfort.utilities import v_relative
+        from pythermalcomfort.environment import v_relative
 
         tdb = 25
         tr = 25
@@ -115,7 +122,7 @@ def pmv_ppd_iso(
             rh=rh,
             met=met,
             clo=clo_dynamic,
-            model="7730-2005",
+            model="7730-2025",
         )
         print(results.pmv)  # 0.17
         print(results.ppd)  # 5.6
@@ -127,7 +134,7 @@ def pmv_ppd_iso(
             rh=50,
             met=1.4,
             clo=0.5,
-            model="7730-2005",
+            model="7730-2025",
         )
         print(result.pmv)  # [-0.  0.41]
         print(result.ppd)  # [5.  8.5]
@@ -157,35 +164,31 @@ def pmv_ppd_iso(
         tdb, tr, vr = units_converter(tdb=tdb, tr=tr, v=vr)
 
     model = model.lower()
-    if model not in [Models.iso_7730_2005.value]:
-        raise ValueError(
-            "PMV calculations can only be performed in compliance with ISO 7730-2005",
+    if model not in [Models.iso_7730_2005.value, Models.iso_7730_2025.value]:
+        invalid_model_msg = (
+            "PMV calculations can only be performed in compliance with "
+            f"ISO {Models.iso_7730_2005.value} or ISO {Models.iso_7730_2025.value}"
         )
+        raise ValueError(invalid_model_msg)
 
-    (
-        tdb_valid,
-        tr_valid,
-        v_valid,
-        met_valid,
-        clo_valid,
-    ) = _check_standard_compliance_array(
-        standard=Models.iso_7730_2005.value,
-        tdb=tdb,
-        tr=tr,
-        v=vr,
-        met=met,
-        clo=clo,
-    )
-
-    pmv_array = _pmv_ppd_optimized(tdb, tr, vr, rh, met, clo, wme)
+    pmv = _pmv_ppd_optimized(tdb, tr, vr, rh, met, clo, wme)
 
     ppd_array = 100.0 - 95.0 * np.exp(
-        -0.03353 * pmv_array**4.0 - 0.2179 * pmv_array**2.0,
+        -0.03353 * pmv**4.0 - 0.2179 * pmv**2.0,
     )
 
     # Checks that inputs are within the bounds accepted by the model if not return nan
     if limit_inputs:
-        pmv_valid = valid_range(pmv_array, (-2, 2))  # this is the ISO limit
+        # ISO 7730 Clause 4 applicability limits
+        pa = rh * 10.0 * np.exp(16.6536 - 4030.183 / (tdb + 235.0))
+
+        tdb_valid = _valid_range(tdb, (10.0, 30.0))
+        tr_valid = _valid_range(tr, (10.0, 40.0))
+        v_valid = _valid_range(vr, (0.0, 1.0))
+        met_valid = _valid_range(met, (0.8, 4.0))
+        clo_valid = _valid_range(clo, (0.0, 2.0))
+        pa_valid = _valid_range(pa, (0.0, 2700.0))
+        pmv_valid = _valid_range(pmv, (-2, 2))
 
         all_valid = ~(
             np.isnan(tdb_valid)
@@ -193,13 +196,14 @@ def pmv_ppd_iso(
             | np.isnan(v_valid)
             | np.isnan(met_valid)
             | np.isnan(clo_valid)
+            | np.isnan(pa_valid)
             | np.isnan(pmv_valid)
         )
-        pmv_array = np.where(all_valid, pmv_array, np.nan)
+        pmv = np.where(all_valid, pmv, np.nan)
         ppd_array = np.where(all_valid, ppd_array, np.nan)
 
     if round_output:
-        pmv_array = np.round(pmv_array, 2)
+        pmv = np.round(pmv, 2)
         ppd_array = np.round(ppd_array, 1)
 
     thermal_sensation = {
@@ -213,7 +217,7 @@ def pmv_ppd_iso(
     }
 
     return PMVPPD(
-        pmv=pmv_array,
+        pmv=pmv,
         ppd=ppd_array,
-        tsv=mapping(pmv_array, thermal_sensation, right=False),
+        tsv=_mapping(pmv, thermal_sensation, right=False),
     )

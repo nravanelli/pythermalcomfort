@@ -1,8 +1,10 @@
 References
 ==========
 
+.. [11079ISO2007] ISO, 2007. ISO 11079 - Ergonomics of the thermal environment - Determination and interpretation of cold stress when using required clothing insulation (IREQ) and local cooling effects.
 .. [55ASHRAE2023] ANSI, & ASHRAE. (2023). Thermal Environmental Conditions for Human Occupancy. Atlanta.
 .. [7730ISO2005] ISO. (2005). ISO 7730 - Ergonomics of the thermal environment — Analytical determination and interpretation of thermal comfort using calculation of the PMV and PPD indices and local thermal comfort criteria.
+.. [7730ISO2025] ISO. (2025). ISO 7730 - Ergonomics of the thermal environment — Analytical determination and interpretation of thermal comfort using calculation of the PMV and PPD indices and local thermal comfort criteria.
 .. [16798EN2019] EN, & BSI. (2019). Energy performance of buildings - Ventilation for buildings. BSI Standards Limited 2019.
 .. [Schiavon2013] Schiavon, S., & Lee, K. H. (2013). Dynamic predictive clothing insulation models based on outdoor air and indoor operative temperatures. Building and Environment, 59, 250–260. doi.org/10.1016/j.buildenv.2012.08.024
 .. [7726ISO1998] ISO. (1998). ISO 7726 - Ergonomics of the thermal environment instruments for measuring physical quantities.
@@ -30,7 +32,7 @@ References
 .. [Yao2009] Yao, Runming & Li, Baizhan & Liu, Jing. (2009). A theoretical adaptive model of thermal comfort – Adaptive Predicted Mean Vote (aPMV). Building and Environment. 44. 2089-2096. 10.1016/j.buildenv.2009.02.014.
 .. [Fanger2002] Fanger, P. & Toftum, Jorn. (2002). Extension of the PMV model to non-air-conditioned buildings in warm climates. Energy and Buildings. 34. 533-536. 10.1016/S0378-7788(02)00003-8.
 .. [Schweiker2022] Schweiker, M., 2022. Combining adaptive and heat balance models for thermal sensation prediction: A new approach towards a theory and data‐driven adaptive thermal heat balance model. Indoor Air 32, 1–19. DOI: doi.org/10.1111/ina.13018
-.. [lu] Lu, Y.C. and Romps, D.M., Extending the Heat Index to Quantify the Physiological Response to Future Warming: A Modelling Study. Available at SSRN 3739854.
+.. [lu] Lu, Y.C. and Romps, D.M. (2022). Extending the heat index. Journal of Applied Meteorology and Climatology, 61(10), 1367-1383.
 .. [ISO9920] ISO, EN (2009). ISO 9920 - Ergonomics of the thermal environment. Estimation of thermal insulation and water vapour resistance of a clothing ensemble
 .. [Fanger1970] Fanger, P. O. (1970). Thermal comfort: analysis and applications in environmental engineering. McGraw-Hill, New York.
 .. [Tartarini2025PMV] Tartarini, F. and Schiavon, S., 2025. Comparative analysis of PMV Models accuracy implemented in the ISO 7730: 2005 and ASHRAE 55: 2023. Building and Environment, p.112766. doi: doi.org/10.1016/j.buildenv.2025.112766
@@ -40,8 +42,13 @@ References
 .. [Kjellstrom2018] Kjellstrom T, Freyberg C, Lemke B, Otto M, Briggs D. Estimating population heat exposure and impacts on working people in conjunction with climate change. International Journal of Biometeorology. 2018 Mar;62(3):291-306.
 .. [Ji2022] Ji L, Laouadi A, Wang L, Lacasse MA. Development of a bioheat model for older people under hot and cold exposures. Building Simulation. 2022;15(10):1815-1829.
 .. [Yan2025] Yan J, Tong Z, Wang Y, Feng S, Su Y, Song Y, Wen Q, Yin C. From measurements to regulations: An actionable approach for sustainable urban cooling via heat-resilient urban planning. Sustainable Cities and Society. 2025;125:106361.
+.. [Schoen2005] Schoen, Carl. 2005. “A New Empirical Model of the Temperature–Humidity Index.” Journal of Applied Meteorology and Climatology 44 (9): 1413–20. https://doi.org/10.1175/JAM2285.1.
 .. [Schlatter1987] Schlatter TW. Temperature-humidity index. In: Climatology. Encyclopedia of Earth Science. Springer; 1987. DOI: 10.1007/0-387-30749-4_176
 .. [Forbes2025] Forbes C, Coccarelli A, Xu Z, Meade RD, Kenny GP, Binnewies S, Bach AJE. Biophysical versus machine learning models for predicting rectal and skin temperatures in older adults. J Therm Biol. 2025 Feb;128:104078. DOI: 10.1016/j.jtherbio.2025.104078. Epub 2025 Feb 22. PMID: 40010162.
+.. [SportsHeatStress2025] Tartarini F, Smallcombe JW, Lynch GP, Cross TJ, Broderick C, Jay O. The Sports Medicine Australia extreme heat risk and response guidelines and web tool. Journal of Science and Medicine in Sport. 2025;28(9):690-699. DOI: 10.1016/j.jsams.2025.03.006
+.. [SportsHeatPolicy2025] Sports Medicine Australia. (2025). EXTREME HEAT RISK AND RESPONSE GUIDELINES AND WEBTOOL (2025). URL: https://sma.org.au/wp-content/uploads/2026/01/Extreme-Heat-Policy-2025_v1.pdf (accessed 2026-02-03)
+.. [SportsHeatTool] Sports Heat Tool. Sports Medicine Australia. URL: https://sma-heat-policy.sydney.edu.au/
+.. [WMO2024] World Meteorological Organization. (2024). Guide to Instruments and Methods of Observation (WMO-No. 8). Geneva, Switzerland.
+
 .. [Morris2021] Morris N, Chaseling G, English T, Gruss F, Bin Maideen MF, Capon A, Jay O. Electric fan use for cooling during hot weather: a biophysical modelling study. Lancet - Planetary Health. 2021; 5(6): E368-E377.
 .. [Foster2021] Foster J, Smallcombe J, Hodder S, Jay O, Flouris A, Havenith G. Quantifying the impact of heat on human physical work capacity; part II: the observed interaction of air velocity with temperature, humidity, sweat rate, and clothing is not captured by most heat stress indices. International Journal of Biometeorology. 2021 Nov;66(3):507-520.
-.. [WMO2024] World Meteorological Organization. (2024). Guide to Meteorological Instruments and Methods of Observation, 2024 Edition. WMO-No. 8. Geneva, Switzerland: World Meteorological Organization. URL: https://library.wmo.int/viewer/68695/download?file=WMO-8-vI-2024_en.pdf&type=pdf&navigator=1

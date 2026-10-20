@@ -1,25 +1,35 @@
 from __future__ import annotations
 
+import math
 import warnings
 from typing import Literal
 
 import numpy as np
+from numba import njit
 from scipy import optimize
 
-from pythermalcomfort.classes_input import CEInputs
+from pythermalcomfort.classes_input import CEInputs, NumericInput
 from pythermalcomfort.classes_return import CE
-from pythermalcomfort.models.set_tmp import set_tmp
+from pythermalcomfort.models.two_nodes_gagge import _gagge_two_nodes_optimized
 from pythermalcomfort.utilities import Units, units_converter
+
+# set_tmp()/two_nodes_gagge() defaults that cooling_effect() relies on but never
+# exposes as parameters itself
+_BODY_SURFACE_AREA = 1.8258
+_P_ATM = 101325
+# two_nodes_gagge()'s calculate_ce=True path hardcodes position=1 (forces the
+# "standing" branch) regardless of the position argument, so this matches it
+_POSITION_STANDING_CODE = 1
 
 
 def cooling_effect(
-    tdb: float | list[float],
-    tr: float | list[float],
-    vr: float | list[float],
-    rh: float | list[float],
-    met: float | list[float],
-    clo: float | list[float],
-    wme: float | list[float] = 0,
+    tdb: NumericInput,
+    tr: NumericInput,
+    vr: NumericInput,
+    rh: NumericInput,
+    met: NumericInput,
+    clo: NumericInput,
+    wme: NumericInput = 0,
     units: Literal["SI", "IP"] = Units.SI.value,
 ) -> CE:
     """Return the value of the Cooling Effect (`CE`_) calculated in compliance with the
@@ -50,7 +60,7 @@ def cooling_effect(
             average air speed measured by the sensor plus the activity-generated air speed
             (Vag). Where Vag is the activity-generated air speed caused by motion of
             individual body parts. vr can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.v_relative`.
+            :py:meth:`pythermalcomfort.environment.v_relative`.
 
     rh : float or list of floats
         Relative humidity, [%].
@@ -65,7 +75,7 @@ def cooling_effect(
             surface to the outer clothing surface, including enclosed air layers, under actual
             environmental conditions. This value is not the total insulation (`I`:sub:`T,r`).
             The dynamic clothing insulation, clo, can be calculated using the function
-            :py:meth:`pythermalcomfort.utilities.clo_dynamic_ashrae`.
+            :py:meth:`pythermalcomfort.clothing.clo_dynamic_ashrae`.
 
     wme : float or list of floats, optional
         External work, [met]. Defaults to 0.
@@ -147,27 +157,43 @@ def cooling_effect(
     return CE(ce=np.around(_ce, 2))
 
 
+@njit(cache=True)
+def _p_sat_torr(tdb):
+    return math.exp(18.6686 - 4030.183 / (tdb + 235.0))
+
+
+@njit(cache=True)
+def _set_for_cooling_effect(tdb, tr, v, rh, met, clo, wme):
+    # mirrors set_tmp(..., calculate_ce=True, limit_inputs=False).set, without
+    # the per-call input validation/dataclass overhead of the public API stack
+    vapor_pressure = rh * _p_sat_torr(tdb) / 100.0
+    return _gagge_two_nodes_optimized(
+        tdb=tdb,
+        tr=tr,
+        v=v,
+        met=met,
+        clo=clo,
+        vapor_pressure=vapor_pressure,
+        wme=wme,
+        body_surface_area=_BODY_SURFACE_AREA,
+        p_atm=_P_ATM,
+        position=_POSITION_STANDING_CODE,
+        calculate_ce=True,
+    )[0]
+
+
 @np.vectorize
 def _cooling_effect_vectorised(tdb, tr, still_air_threshold, rh, met, clo, wme, vr):
     if vr <= 0.1:
         return 0.0
 
-    initial_set_tmp = set_tmp(
-        tdb=tdb,
-        tr=tr,
-        v=vr,
-        rh=rh,
-        met=met,
-        clo=clo,
-        wme=wme,
-        round_output=False,
-        calculate_ce=True,
-        limit_inputs=False,
-    ).set
+    initial_set_tmp = _set_for_cooling_effect(
+        tdb=tdb, tr=tr, v=vr, rh=rh, met=met, clo=clo, wme=wme
+    )
 
     def function(x):
         return (
-            set_tmp(
+            _set_for_cooling_effect(
                 tdb=tdb - x,
                 tr=tr - x,
                 v=still_air_threshold,
@@ -175,10 +201,7 @@ def _cooling_effect_vectorised(tdb, tr, still_air_threshold, rh, met, clo, wme, 
                 met=met,
                 clo=clo,
                 wme=wme,
-                round_output=False,
-                calculate_ce=True,
-                limit_inputs=False,
-            ).set
+            )
             - initial_set_tmp
         )
 

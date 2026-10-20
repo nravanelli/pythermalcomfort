@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from pythermalcomfort.classes_input import RidgeRegressionInputs
+from pythermalcomfort._internal.validation import _valid_range
+from pythermalcomfort.classes_input import NumericInput, RidgeRegressionInputs
 from pythermalcomfort.classes_return import PredictedBodyTemperatures
-from pythermalcomfort.shared_functions import valid_range
 from pythermalcomfort.utilities import Sex
 
 # --- Model Constants ---
@@ -182,24 +182,24 @@ def _check_ridge_regression_compliance(
         Five arrays with valid values preserved and out-of-range values set to NaN:
         (age_valid, height_valid, weight_valid, temp_valid, rh_valid).
     """
-    age_valid = valid_range(age, (60, 100))
-    height_valid = valid_range(height, (130, 230))
-    weight_valid = valid_range(weight, (40, 140))
-    temp_valid = valid_range(tdb, (0, 60))
-    rh_valid = valid_range(rh, (0, 100))
+    age_valid = _valid_range(age, (60, 100))
+    height_valid = _valid_range(height, (130, 230))
+    weight_valid = _valid_range(weight, (40, 140))
+    temp_valid = _valid_range(tdb, (0, 60))
+    rh_valid = _valid_range(rh, (0, 100))
     return age_valid, height_valid, weight_valid, temp_valid, rh_valid
 
 
 def ridge_regression_predict_t_re_t_sk(
     sex: Sex | str | list[Sex | str],
-    age: float | list[float],
-    height: float | list[float],
-    weight: float | list[float],
-    tdb: float | list[float],
-    rh: float | list[float],
+    age: NumericInput,
+    height: NumericInput,
+    weight: NumericInput,
+    tdb: NumericInput,
+    rh: NumericInput,
     duration: int,
-    t_re: float | list[float] | None = None,
-    t_sk: float | list[float] | None = None,
+    t_re: NumericInput | None = None,
+    t_sk: NumericInput | None = None,
     limit_inputs: bool = True,
     round_output: bool = True,
 ) -> PredictedBodyTemperatures:
@@ -376,11 +376,11 @@ def ridge_regression_predict_t_re_t_sk(
             temp_valid,
             rh_valid,
         ) = _check_ridge_regression_compliance(
-            flat_inputs[1],
-            flat_inputs[2],
-            flat_inputs[3],
-            flat_inputs[4],
-            flat_inputs[5],
+            age=flat_inputs[1],
+            height=flat_inputs[2],
+            weight=flat_inputs[3],
+            tdb=flat_inputs[4],
+            rh=flat_inputs[5],
         )
 
     if t_re is not None and t_sk is not None:

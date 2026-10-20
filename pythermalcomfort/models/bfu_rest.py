@@ -18,12 +18,13 @@ def bfu_rest(
 
     Implement the resting biophysical model of Morris et al. (2021)
     [Morris2021]_. The model uses fixed resting metabolic and physiological
-    parameters for young adults, older adults, and older adults taking medication.
+    parameters for healthy young adults, healthy older adults, and older adults
+    taking anticholinergic medication.
     It compares fan air speed of 3.5 m/s with still-air speed of 0.2 m/s.
     The metabolic rate is fixed at 65 W/m²; changing it would define a different
-    model. The population scenarios set sweat production and wettedness limits;
-    they do not classify individuals by age or medication. This is a comparison
-    of modelled heat storage, not an individual safe-use temperature limit.
+    model. The population groups select the source model's fixed sweat
+    production and wettedness limits. The output compares modelled heat storage;
+    it does not determine an individual's safe-use temperature limit.
     Negative ``delta_storage`` indicates reduced heat storage with the fan.
     Use ``bfu_occupational`` for the separate occupational model with variable
     metabolic rate, clothing, and air speed.
@@ -35,8 +36,12 @@ def bfu_rest(
     rh : float or list of floats
         Relative humidity, :math:`%`.
     population : str or BFURestPopulation, optional
-        Physiological scenario from Morris et al. (2021). See
-        :py:class:`~pythermalcomfort.utilities.BFURestPopulation`. Choices are ``'YNG'``, ``'OLD'``, and ``'MEDS'``. Defaults to ``'YNG'``.
+        Population group as defined by Morris et al. (2021) [Morris2021]_.
+        ``"YNG"``: healthy young adults aged 18-40 years.
+        ``"OLD"``: healthy older adults aged 65 years or older.
+        ``"MEDS"``: older adults taking anticholinergic medication.
+        Also accepts :py:class:`~pythermalcomfort.utilities.BFURestPopulation`
+        members. Defaults to ``"YNG"``.
     round_output : bool, optional
         If ``True`` the returned values are rounded to one decimal place. Defaults to ``True``.
 

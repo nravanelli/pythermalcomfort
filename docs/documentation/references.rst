@@ -50,5 +50,5 @@ References
 .. [SportsHeatTool] Sports Heat Tool. Sports Medicine Australia. URL: https://sma-heat-policy.sydney.edu.au/
 .. [WMO2024] World Meteorological Organization. (2024). Guide to Instruments and Methods of Observation (WMO-No. 8). Geneva, Switzerland.
 
-.. [Morris2021] Morris N, Chaseling G, English T, Gruss F, Bin Maideen MF, Capon A, Jay O. Electric fan use for cooling during hot weather: a biophysical modelling study. Lancet - Planetary Health. 2021; 5(6): E368-E377.
+.. [Morris2021] Morris N, Chaseling G, English T, Gruss F, Bin Maideen MF, Capon A, Jay O. Electric fan use for cooling during hot weather: a biophysical modelling study. Lancet - Planetary Health. 2021; 5(6): E368-E377. DOI: https://doi.org/10.1016/S2542-5196(21)00136-4
 .. [Foster2021] Foster J, Smallcombe J, Hodder S, Jay O, Flouris A, Havenith G. Quantifying the impact of heat on human physical work capacity; part II: the observed interaction of air velocity with temperature, humidity, sweat rate, and clothing is not captured by most heat stress indices. International Journal of Biometeorology. 2021 Nov;66(3):507-520.

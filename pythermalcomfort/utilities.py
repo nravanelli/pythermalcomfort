@@ -60,9 +60,11 @@ class Postures(Enum):
 class BFURestPopulation(Enum):
     """Physiological parameter sets in the Morris et al. (2021) resting fan model.
 
-    These are discrete modelling scenarios, not age or medication classifiers.
-    ``MEDS`` represents the paper's reduced-sweating scenario for older adults
-    taking medication that affects thermoregulation.
+    Population definitions follow [Morris2021]_: ``YNG`` represents healthy
+    young adults aged 18-40 years; ``OLD`` represents healthy older adults aged
+    65 years or older; ``MEDS`` represents older adults taking anticholinergic
+    medication. Each group selects the source model's fixed sweat-production
+    and skin-wettedness parameters.
     """
 
     young = "YNG"

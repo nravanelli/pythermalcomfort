@@ -57,6 +57,19 @@ class Postures(Enum):
     crouching = "crouching"
 
 
+class BFURestPopulation(Enum):
+    """Physiological parameter sets in the Morris et al. (2021) resting fan model.
+
+    These are discrete modelling scenarios, not age or medication classifiers.
+    ``MEDS`` represents the paper's reduced-sweating scenario for older adults
+    taking medication that affects thermoregulation.
+    """
+
+    young = "YNG"
+    older = "OLD"
+    older_meds = "MEDS"
+
+
 class BodySurfaceAreaEquations(Enum):
     """Body Surface Area Equations."""
 

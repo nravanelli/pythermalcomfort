@@ -325,74 +325,72 @@ class Humidex(AutoStrMixin):
 
 
 @dataclass(frozen=True, repr=False)
-class BFU_rest(AutoStrMixin):
+class BFURest(AutoStrMixin):
     """Dataclass for the fan biophysical model from Morris et al. 2021.
 
     Attributes
     ----------
-    heat_storage : float or list of floats
-        Differential heat storage when using the fan vs. not using the fan, [W/m²].
-    e_req_fan : float or list of floats
+    delta_storage : float or list of floats or np.ndarray
+        Heat storage with the fan minus without it (negative means beneficial), [W/m²].
+    e_req_fan : float or list of floats or np.ndarray
         Required evaporative heat loss with the fan, [W/m²].
-    e_max_fan : float or list of floats
+    e_max_fan : float or list of floats or np.ndarray
         Maximum possible evaporative heat loss with the fan, [W/m²].
-    e_req_no_fan : float or list of floats
+    e_req_no_fan : float or list of floats or np.ndarray
         Required evaporative heat loss without the fan, [W/m²].
-    e_max_no_fan : float or list of floats
+    e_max_no_fan : float or list of floats or np.ndarray
         Maximum possible evaporative heat loss without the fan, [W/m²].
-    group : str
-        Population group identifier used for the calculation (YNG, OLD, MEDS).
     """
 
-    heat_storage: float | list[float]
-    e_req_fan: float | list[float]
-    e_max_fan: float | list[float]
-    e_req_no_fan: float | list[float]
-    e_max_no_fan: float | list[float]
-    group: str
+    delta_storage: float | list[float] | np.ndarray
+    e_req_fan: float | list[float] | np.ndarray
+    e_max_fan: float | list[float] | np.ndarray
+    e_req_no_fan: float | list[float] | np.ndarray
+    e_max_no_fan: float | list[float] | np.ndarray
 
 
 @dataclass(frozen=True, repr=False)
-class BFU_occupational(AutoStrMixin):
+class BFUOccupational(AutoStrMixin):
     """Dataclass for the occupational fan use model from Foster et al. 2021.
 
     Attributes
     ----------
-    storage_fan : float or list of floats
+    heat_storage_fan : float or list of floats or np.ndarray
         Heat storage rate when the fan is operating, [W/m²].
-    storage_no_fan : float or list of floats
+    heat_storage_no_fan : float or list of floats or np.ndarray
         Heat storage rate without the fan, [W/m²].
-    delta_storage : float or list of floats
-        Reduction in heat storage provided by the fan (positive means beneficial), [W/m²].
-    dry_heat_fan : float or list of floats
+    delta_storage : float or list of floats or np.ndarray
+        Heat storage with the fan minus heat storage without it (negative means beneficial), [W/m²].
+    dry_heat_fan : float or list of floats or np.ndarray
         Dry heat loss with the fan (radiative + convective), [W/m²].
-    dry_heat_no_fan : float or list of floats
+    dry_heat_no_fan : float or list of floats or np.ndarray
         Dry heat loss without the fan, [W/m²].
-    evaporative_heat_fan : float or list of floats
+    evaporative_heat_fan : float or list of floats or np.ndarray
         Evaporative heat loss via sweating with the fan, [W/m²].
-    evaporative_heat_no_fan : float or list of floats
+    evaporative_heat_no_fan : float or list of floats or np.ndarray
         Evaporative heat loss via sweating without the fan, [W/m²].
-    respiratory_heat : float or list of floats
+    respiratory_heat : float or list of floats or np.ndarray
         Combined sensible and latent respiratory heat exchange, [W/m²].
-    sweat_efficiency_fan : float or list of floats
+    sweat_efficiency_fan : float or list of floats or np.ndarray
         Sweating efficiency (η) with the fan, [-].
-    sweat_efficiency_no_fan : float or list of floats
+    sweat_efficiency_no_fan : float or list of floats or np.ndarray
         Sweating efficiency (η) without the fan, [-].
-    interpretation : int or list of int
-        Qualitative interpretation based on Foster et al 2021 (1 = beneficial, 0 = neutral, -1 = harmful).
+    fan_benefit : int or list of int or np.ndarray
+        Qualitative interpretation: 1 for delta_storage < -50 W/m²,
+        -1 for delta_storage > 50 W/m², otherwise 0. Calculated before rounding.
     """
 
-    storage_fan: float | list[float]
-    storage_no_fan: float | list[float]
-    delta_storage: float | list[float]
-    dry_heat_fan: float | list[float]
-    dry_heat_no_fan: float | list[float]
-    evaporative_heat_fan: float | list[float]
-    evaporative_heat_no_fan: float | list[float]
-    respiratory_heat: float | list[float]
-    sweat_efficiency_fan: float | list[float]
-    sweat_efficiency_no_fan: float | list[float]
-    interpretation: int | list[int]
+    heat_storage_fan: float | list[float] | np.ndarray
+    heat_storage_no_fan: float | list[float] | np.ndarray
+    delta_storage: float | list[float] | np.ndarray
+    dry_heat_fan: float | list[float] | np.ndarray
+    dry_heat_no_fan: float | list[float] | np.ndarray
+    evaporative_heat_fan: float | list[float] | np.ndarray
+    evaporative_heat_no_fan: float | list[float] | np.ndarray
+    respiratory_heat: float | list[float] | np.ndarray
+    sweat_efficiency_fan: float | list[float] | np.ndarray
+    sweat_efficiency_no_fan: float | list[float] | np.ndarray
+    fan_benefit: int | list[int] | np.ndarray
 
 
 @dataclass(frozen=True, repr=False)

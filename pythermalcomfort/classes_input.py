@@ -46,22 +46,6 @@ class WorkIntensity(str, Enum):  # noqa: UP042 - StrEnum would change str(member
     LIGHT = "light"
 
 
-class BFU_rest_Groups(str, Enum):
-    """
-    Enumeration for population groups as described in Morris et al. 2021 .
-
-    Mapping:
-        YNG  = Young adults, 18–45 years
-        OLD  = Older adults, 65+ years
-        MEDS = Older adults +65 years on medication
-               (e.g., anticholinergics, beta-blockers, diuretics)
-    """
-
-    young = "YNG"
-    older = "OLD"
-    meds = "MEDS"
-
-
 @dataclass
 class BaseInputs:
     """Base inputs with metadata-driven validation."""
@@ -478,214 +462,142 @@ class HumidexModels(Enum):
     masterson = "masterson"
 
 
-@dataclass(frozen=True)
-class BFU_rest_Parameters:
-    """Default physical and physiological parameters for the Morris LPH fan model."""
-
-    metabolic_rate: float = 65.0  # [W/m2]
-    external_work: float = 0.0  # [W/m2]
-    t_skin: float = 35.5  # [°C]
-    p_skin_sat_kpa: float = 5.78  # [kPa]
-    hr: float = 4.7  # [W/m2/K]
-    body_surface_area: float = 1.83  # [m2]
-    latent_heat_j_g: float = 2426.0  # [J/g]
-    sweating_efficiency_min: float = 0.55
-    r_cl_off: float = 0.1291  # [m2*K/W]
-    r_ecl_off: float = 0.0237  # [m2*kPa/W]
-    r_cl_on: float = 0.1341  # [m2*K/W]
-    r_ecl_on_front: float = 0.0112  # [m2*kPa/W]
-    r_ecl_on_rear: float = 0.0161  # [m2*kPa/W]
-    v_on: float = 3.5  # [m/s]
-    v_off: float = 0.2  # [m/s]
-    sweat_rate: dict[str, float] = field(
-        default_factory=lambda: {
-            BFU_rest_Groups.young.value: 660.0,
-            BFU_rest_Groups.older.value: 440.0,
-            BFU_rest_Groups.meds.value: 330.0,
-        },
-    )
-    wcrit_on: dict[str, float] = field(
-        default_factory=lambda: {
-            BFU_rest_Groups.young.value: 0.65,
-            BFU_rest_Groups.older.value: 0.50,
-            BFU_rest_Groups.meds.value: 0.38,
-        },
-    )
-    wcrit_off: dict[str, float] = field(
-        default_factory=lambda: {
-            BFU_rest_Groups.young.value: 0.85,
-            BFU_rest_Groups.older.value: 0.65,
-            BFU_rest_Groups.meds.value: 0.49,
-        },
-    )
+def _bfu_choice_array(value):
+    """Normalize scalar or array enum/string choices without losing dimensions."""
+    arr = np.asarray(value, dtype=object)
+    return np.asarray(
+        [
+            str(item.value if isinstance(item, Enum) else item).lower()
+            for item in arr.flat
+        ]
+    ).reshape(arr.shape)
 
 
-@dataclass
-class BFU_rest_Inputs(BaseInputs):
-    group: str = field(default=BFU_rest_Groups.young.value)
-    params: BFU_rest_Parameters = field(
-        default_factory=BFU_rest_Parameters,
-        repr=False,
-    )
+def _validate_bfu_numeric(value, name, units, minimum=None, maximum=None):
+    """Reject missing, non-finite, and physically invalid fan-model inputs."""
+    if value is None:
+        message = f"{name} [{units}] is required."
+        raise ValueError(message)
+    arr = np.asarray(value, dtype=float)
+    if not arr.size or not np.all(np.isfinite(arr)):
+        message = f"{name} [{units}] must contain finite values."
+        raise ValueError(message)
+    if units == "°C" and np.any(arr <= -273.15):
+        raise ValueError("Temperature [°C] must be greater than -273.15.")
+    if minimum is not None and np.any(arr < minimum):
+        message = f"{name} [{units}] must be greater than or equal to {minimum}."
+        raise ValueError(message)
+    if maximum is not None and np.any(arr > maximum):
+        message = f"{name} [{units}] must be less than or equal to {maximum}."
+        raise ValueError(message)
 
-    def __init__(
-        self,
-        tdb,
-        rh,
-        group=BFU_rest_Groups.young.value,
-        round_output=True,
-    ):
-        # Initialize with only required fields, setting others to None
-        super().__init__(
-            tdb=tdb,
-            rh=rh,
-            round_output=round_output,
+
+@dataclass(kw_only=True)
+class BFURestInputs(BaseInputs):
+    """Validated inputs for the Morris resting fan model."""
+
+    population: str = "YNG"
+
+    def __post_init__(self):
+        super().__post_init__()
+        _validate_bfu_numeric(value=self.tdb, name="tdb", units="°C", minimum=None)
+        _validate_bfu_numeric(
+            value=self.rh, name="rh", units="%", minimum=0, maximum=100
         )
-        self.group = group
-        self.params = BFU_rest_Parameters()
-        self._validate_group_specific_inputs()
-
-    def _validate_group_specific_inputs(self):
-        rh = np.asarray(self.rh, dtype=float)
-        if np.any(rh < 0) or np.any(rh > 100):
-            raise ValueError("Relative humidity must be between 0 and 100 %.")
-
-        group_value = str(self.group).upper()
-        if group_value not in BFU_rest_Groups._value2member_map_:
-            raise ValueError(
-                "Invalid group. The group must be one of {'YNG','OLD','MEDS'}.",
-            )
-        self.group = group_value
-
-
-@dataclass
-class BFU_occupational_Inputs(BaseInputs):
-    """Inputs for the Foster IJBM occupational fan model."""
-
-    def __init__(
-        self,
-        tdb,
-        rh,
-        tr=None,
-        clo=0.28,
-        met=125.0,
-        fan_velocity=3.5,
-        fan_off_velocity=0.2,
-        position="standing",
-        activity="walk",
-        speed=1.66,
-        fixed_sweat_rate_lph=1.0,
-        body_surface_area=1.81,
-        round_output=True,
-    ):
-        tr_value = tr if tr is not None else tdb
-
-        super().__init__(
-            tdb=tdb,
-            tr=tr_value,
-            rh=rh,
-            clo=clo,
-            met=met,
-            body_surface_area=body_surface_area,
-            round_output=round_output,
-        )
-
-        # Replace sentinel values (999) with air temperature
-        tr_arr = np.asarray(self.tr, dtype=float)
-        tdb_arr = np.asarray(self.tdb, dtype=float)
-        self.tr = np.where(tr_arr == 999.0, tdb_arr, tr_arr)
-
-        self.fan_velocity = fan_velocity
-        self.fan_off_velocity = fan_off_velocity
-        self.speed = speed
-
-        def normalize(x, vocab=None, default=None):
-            arr = np.atleast_1d(x)
-            out = np.array([ (vocab or {}).get(str(s).lower(), (default if default is not None else str(s).lower()))
-                            for s in arr ], dtype=object)
-            return out[0] if (np.isscalar(x) or np.asarray(x).shape == ()) else out
-
-        normalize_position = lambda x: normalize(x, {"sitting":"seated", "stand":"standing"}, "standing")
-        normalize_activity = lambda x: normalize(x, {"walk":"walk","rest":"rest","cycle":"cycle"}, "walk")
-
-        self.position = normalize_position(position) 
-        self.activity = normalize_activity(activity)
-
-        self.fixed_sweat_rate_lph = fixed_sweat_rate_lph
-
-        self._validate_custom_inputs()
-
-    def _validate_custom_inputs(self) -> None:
-        """Run additional internal validation for inputs in the Foster occupational
-        model."""
-
-        rh = np.asarray(self.rh, dtype=float)
-        if np.any((rh < 0) | (rh > 100)):
-            raise ValueError("Relative humidity must be between 0 and 100 %.")
-
-        position_arr = np.asarray(self.position, dtype=object)
-        position_values = np.char.lower(position_arr.astype(str))
-        if not np.isin(position_values, ["standing", "seated"]).all():
-            raise ValueError("position must contain only 'standing' or 'seated'.")
-
-        activity_arr = np.asarray(self.activity, dtype=object)
-        activity_values = np.char.lower(activity_arr.astype(str))
-        if not np.isin(activity_values, ["walk", "rest", "cycle"]).all():
-            raise ValueError(
-                "activity must contain only values convertible to 'walk', 'rest', or 'cycle'.",
-            )
-
-        def _validate_non_negative(value, name: str) -> None:
-            arr = np.asarray(value, dtype=float)
-            if np.any(arr < 0):
-                message = f"{name} [m/s] must be greater than or equal to 0."
-                raise ValueError(message)
-
-        _validate_non_negative(self.speed, "speed")
-        _validate_non_negative(self.fan_velocity, "fan_velocity")
-        _validate_non_negative(self.fan_off_velocity, "fan_off_velocity")
-
-        if self.fixed_sweat_rate_lph is not None:
-            _validate_non_negative(self.fixed_sweat_rate_lph, "fixed_sweat_rate_lph")
-
-        # Ensure broadcast compatibility across all array-like inputs
+        if not isinstance(self.population, (str, Enum)):
+            raise TypeError("population must be a string or BFURestPopulation member.")
+        self.population = (
+            self.population.value
+            if isinstance(self.population, Enum)
+            else self.population
+        ).upper()
+        if self.population not in {"YNG", "OLD", "MEDS"}:
+            raise ValueError("population must be one of {'YNG', 'OLD', 'MEDS'}.")
         try:
-            core_arrays = np.broadcast_arrays(
-                self.tdb,
-                self.tr,
-                self.rh,
-                self.clo,
-                self.met,
-                self.body_surface_area,
-                self.speed,
-                self.fan_velocity,
-                self.fan_off_velocity,
-            )
+            np.broadcast_arrays(self.tdb, self.rh)
         except ValueError as err:
             raise ValueError(
-                "Input arrays are not broadcastable to a common shape.",
+                "Input arrays are not broadcastable to a common shape."
             ) from err
 
-        broadcast_shape = core_arrays[0].shape
 
+@dataclass(kw_only=True)
+class BFUOccupationalInputs(BaseInputs):
+    """Validated inputs for the Foster occupational fan model."""
+
+    v_no_fan: NumericInput = numeric_field(0.2)
+    posture: str | np.ndarray | list = field(default=Postures.standing.value)
+    activity: str | np.ndarray | list = field(default="walk")
+    speed: NumericInput = numeric_field(1.66)
+    max_sweating: NumericInput | None = numeric_field(None)
+
+    def __post_init__(self):
+        # Normalize categorical values before BaseInputs validates common fields.
+        posture = _bfu_choice_array(self.posture)
+        self.posture = np.where(
+            posture == "seated",
+            Postures.sitting.value,
+            np.where(posture == "stand", Postures.standing.value, posture),
+        )
+        activity = _bfu_choice_array(self.activity)
+        # Preserve the source model's documented fallback to cycling coefficients.
+        self.activity = np.where(np.isin(activity, ["walk", "rest"]), activity, "cycle")
+        if self.tr is None:
+            self.tr = self.tdb
+        super().__post_init__()
+        for name, units, minimum, maximum in (
+            ("tdb", "°C", None, None),
+            ("tr", "°C", None, None),
+            ("rh", "%", 0, 100),
+            ("clo", "clo", 0, None),
+            ("met", "met", 0, None),
+            ("v", "m/s", 0, None),
+            ("v_no_fan", "m/s", 0, None),
+            ("speed", "m/s for walking; rpm for cycling", 0, None),
+            ("body_surface_area", "m²", 0, None),
+        ):
+            _validate_bfu_numeric(
+                value=getattr(self, name),
+                name=name,
+                units=units,
+                minimum=minimum,
+                maximum=maximum,
+            )
+        if np.any(np.asarray(self.body_surface_area) <= 0):
+            raise ValueError("body_surface_area [m²] must be greater than 0.")
+        if not np.isin(
+            self.posture, [Postures.standing.value, Postures.sitting.value]
+        ).all():
+            raise ValueError("posture must contain only 'standing' or 'sitting'.")
+        if self.max_sweating is not None:
+            _validate_bfu_numeric(
+                value=self.max_sweating,
+                name="max_sweating",
+                units="g/(h m²)",
+                minimum=0,
+            )
+        # All numeric and categorical inputs participate in NumPy broadcasting.
+        values = [
+            self.tdb,
+            self.tr,
+            self.rh,
+            self.clo,
+            self.met,
+            self.body_surface_area,
+            self.speed,
+            self.v,
+            self.v_no_fan,
+            self.posture,
+            self.activity,
+        ]
+        if self.max_sweating is not None:
+            values.append(self.max_sweating)
         try:
-            np.broadcast_to(position_arr, broadcast_shape)
-            np.broadcast_to(activity_arr, broadcast_shape)
+            np.broadcast_arrays(*values)
         except ValueError as err:
             raise ValueError(
-                "position and activity must broadcast with the primary inputs.",
+                "Input arrays are not broadcastable to a common shape."
             ) from err
-
-        if self.fixed_sweat_rate_lph is not None:
-            try:
-                np.broadcast_to(
-                    np.asarray(self.fixed_sweat_rate_lph, dtype=float),
-                    broadcast_shape,
-                )
-            except ValueError as err:
-                raise ValueError(
-                    "fixed_sweat_rate_lph must broadcast with the primary inputs.",
-                ) from err
 
 
 @dataclass

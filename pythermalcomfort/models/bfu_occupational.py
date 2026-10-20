@@ -66,7 +66,10 @@ def bfu_occupational(
         :py:class:`~pythermalcomfort.utilities.Postures` member.
         ``"seated"`` is accepted as an alias. Defaults to ``"standing"``.
     activity : str, optional
-        Activity classification. Use ``"walk"`` to apply the walking coefficients, ``"rest"`` to remove additional airflow from movement, and any other value will default to the cycling activity style, interpreting speed as RPM. Defaults to ``"walk"``.
+        Activity classification: ``"walk"``, ``"rest"``, or ``"cycle"``,
+        case-insensitively. Walking uses the walking airflow coefficients;
+        rest removes airflow from movement; cycling interprets ``speed`` as rpm.
+        Unknown values raise ``ValueError``. Defaults to ``"walk"``.
     speed : float or list of floats, optional
         Walking speed, [m/s], or cycling cadence, [rpm], according to activity.
         Defaults to 1.66. Cycling cadence contributes to convective airflow;
@@ -94,7 +97,7 @@ def bfu_occupational(
     Raises
     ------
     ValueError
-        If humidity is outside 0-100 %, posture is unknown, speed or sweat rate
+        If humidity is outside 0-100 %, posture or activity is unknown, speed or sweat rate
         is negative, or input arrays cannot be broadcast together.
 
     Examples

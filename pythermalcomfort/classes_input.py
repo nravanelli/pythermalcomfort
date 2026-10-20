@@ -527,7 +527,7 @@ class BFUOccupationalInputs(BaseInputs):
 
     v_no_fan: NumericInput = numeric_field(0.2)
     posture: str | np.ndarray | list = field(default=Postures.standing.value)
-    activity: str | np.ndarray | list = field(default="walk")
+    activity: str | np.ndarray | list = choice_field(["walk", "rest", "cycle"], "walk")
     speed: NumericInput = numeric_field(1.66)
     max_sweating: NumericInput | None = numeric_field(None)
 
@@ -539,9 +539,7 @@ class BFUOccupationalInputs(BaseInputs):
             Postures.sitting.value,
             np.where(posture == "stand", Postures.standing.value, posture),
         )
-        activity = _bfu_choice_array(self.activity)
-        # Preserve the source model's documented fallback to cycling coefficients.
-        self.activity = np.where(np.isin(activity, ["walk", "rest"]), activity, "cycle")
+        self.activity = _bfu_choice_array(self.activity)
         if self.tr is None:
             self.tr = self.tdb
         super().__post_init__()

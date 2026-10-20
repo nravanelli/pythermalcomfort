@@ -103,20 +103,32 @@ def test_seated_and_standing_use_different_coefficients():
     assert seated.heat_storage_fan != pytest.approx(standing.heat_storage_fan)
 
 
-@pytest.mark.parametrize("activity", ["cycle", "CYCLE", "other"])
-def test_cycling_fallback(activity):
+@pytest.mark.parametrize(
+    ("activity", "canonical"),
+    [
+        ("walk", "walk"),
+        ("WALK", "walk"),
+        ("WaLk", "walk"),
+        ("rest", "rest"),
+        ("REST", "rest"),
+        ("cycle", "cycle"),
+        ("CYCLE", "cycle"),
+        ("CyClE", "cycle"),
+    ],
+)
+def test_activity_case_normalization(activity, canonical):
     result = bfu_occupational(
         30, 60, activity=activity, round_output=False, met=125 / 58.15, clo=0.28
     )
     expected = bfu_occupational(
-        30, 60, activity="cycle", round_output=False, met=125 / 58.15, clo=0.28
+        30, 60, activity=canonical, round_output=False, met=125 / 58.15, clo=0.28
     )
     assert result.heat_storage_fan == pytest.approx(expected.heat_storage_fan)
 
 
 def test_two_dimensional_posture_and_activity_inputs():
     postures = [["seated", "standing"], ["sitting", "stand"]]
-    activities = [["walk", "rest"], ["CYCLE", "other"]]
+    activities = [["walk", "rest"], ["CYCLE", "WALK"]]
     result = bfu_occupational(
         [[30], [35]],
         [50, 60],
@@ -330,3 +342,24 @@ def test_metabolic_rate_changes_absolute_storage_not_fan_difference():
     high = bfu_occupational(tdb=35, rh=50, met=3, clo=0.28, round_output=False)
     assert high.heat_storage_fan != pytest.approx(low.heat_storage_fan)
     assert high.delta_storage == pytest.approx(low.delta_storage)
+
+
+@pytest.mark.parametrize("activity", ["wak", "other", "cycling", "", None, 123])
+def test_unknown_activity_is_rejected(activity):
+    with pytest.raises(ValueError, match="activity.*walk.*rest.*cycle"):
+        bfu_occupational(tdb=30, rh=60, met=2, clo=0.28, activity=activity)
+
+
+@pytest.mark.parametrize(
+    "activity", [["walk", "wak"], [["WALK", "rest"], ["cycle", "other"]]]
+)
+def test_unknown_activity_in_arrays_is_rejected(activity):
+    with pytest.raises(ValueError, match="activity.*walk.*rest.*cycle"):
+        bfu_occupational(tdb=30, rh=60, met=2, clo=0.28, activity=activity)
+
+
+def test_input_dataclass_rejects_unknown_activity():
+    from pythermalcomfort.classes_input import BFUOccupationalInputs
+
+    with pytest.raises(ValueError, match="activity.*walk.*rest.*cycle"):
+        BFUOccupationalInputs(tdb=30, rh=60, met=2, clo=0.28, v=3.5, activity="wak")
